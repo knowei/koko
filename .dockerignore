@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+*.log
+*.tsbuildinfo
+audit
+live2d-source
+backups
+.git
+.gitignore

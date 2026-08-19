@@ -1,0 +1,31 @@
+{
+  "model": "koko",
+  "character": "可可",
+  "modelEntry": "koko.model3.json",
+  "fallbackDirectory": "../../character",
+  "expressions": ["base", "relieved", "worried", "sleepy"],
+  "requiredParameters": [
+    "ParamAngleX",
+    "ParamAngleY",
+    "ParamAngleZ",
+    "ParamEyeLOpen",
+    "ParamEyeROpen",
+    "ParamEyeBallX",
+    "ParamEyeBallY",
+    "ParamMouthOpenY",
+    "ParamMouthForm",
+    "ParamBodyAngleX",
+    "ParamBodyAngleZ",
+    "ParamBreath"
+  ],
+  "optionalParameters": [
+    "ParamHairFront",
+    "ParamHairSide",
+    "ParamHairBack",
+    "ParamRibbonL",
+    "ParamRibbonR",
+    "ParamPendant",
+    "ParamSkirt"
+  ],
+  "status": "awaiting-layered-psd-and-cubism-export"
+}

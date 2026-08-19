@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-bookworm
+    container_name: koko-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: koko
+      POSTGRES_USER: koko
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 中设置 POSTGRES_PASSWORD}
+    volumes:
+      - koko-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U koko -d koko"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  koko:
+    build: .
+    container_name: koko-companion
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8787"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 8787
+      DATABASE_URL: postgresql://koko:${POSTGRES_PASSWORD:?请设置数据库密码}@postgres:5432/koko
+      AUTH_SECRET: ${AUTH_SECRET:?请在 .env 中设置 AUTH_SECRET}
+      TZ: Asia/Shanghai
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    stop_grace_period: 20s
+
+volumes:
+  koko-postgres-data:

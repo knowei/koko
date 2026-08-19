@@ -1,0 +1,32 @@
+{
+  "character": "可可",
+  "canvas": { "width": 2048, "height": 3072, "colorSpace": "sRGB", "background": "transparent" },
+  "groups": [
+    {
+      "name": "01_Face",
+      "layers": ["Face_Base", "Brow_L", "Brow_R", "EyeWhite_L", "EyeWhite_R", "Iris_L", "Iris_R", "LashUpper_L", "LashUpper_R", "LashLower_L", "LashLower_R", "Eyelid_L", "Eyelid_R", "Blush", "Nose", "Mouth_A", "Mouth_I", "Mouth_U", "Mouth_E", "Mouth_O", "Mouth_Closed"],
+      "parameters": ["ParamEyeLOpen", "ParamEyeROpen", "ParamEyeBallX", "ParamEyeBallY", "ParamBrowLY", "ParamBrowRY", "ParamMouthOpenY", "ParamMouthForm"]
+    },
+    {
+      "name": "02_HairFront",
+      "layers": ["Ahoge", "Bang_01", "Bang_02", "Bang_03", "Bang_04", "Bang_05", "SideHair_L", "SideHair_R", "Ribbon_L", "Ribbon_R"],
+      "parameters": ["ParamHairFront", "ParamHairSide", "ParamRibbonL", "ParamRibbonR"]
+    },
+    {
+      "name": "03_Body",
+      "layers": ["Neck", "Torso_Skin", "UpperArm_L", "Forearm_L", "Hand_L", "UpperArm_R", "Forearm_R", "Hand_R"],
+      "parameters": ["ParamBodyAngleX", "ParamBodyAngleZ", "ParamBreath"]
+    },
+    {
+      "name": "04_Clothes",
+      "layers": ["Blouse_Body", "SleeveUpper_L", "SleeveLower_L", "SleeveUpper_R", "SleeveLower_R", "Waistband", "WaistBow", "Skirt_Front", "Skirt_Side_L", "Skirt_Side_R", "Skirt_Back", "Pendant", "PendantChain", "SockShoe_L", "SockShoe_R"],
+      "parameters": ["ParamBreath", "ParamPendant", "ParamSkirt"]
+    },
+    {
+      "name": "05_HairBack",
+      "layers": ["BackHair_Base", "BackHair_L1", "BackHair_L2", "BackHair_R1", "BackHair_R2"],
+      "parameters": ["ParamHairBack"]
+    }
+  ],
+  "modelParameters": ["ParamAngleX", "ParamAngleY", "ParamAngleZ", "ParamBodyAngleX", "ParamBodyAngleZ", "ParamBreath"]
+}
