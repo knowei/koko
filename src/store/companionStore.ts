@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { analyzeMemory, streamChat, type ChatMsg, type ProviderCfg } from "@/lib/chat";
+import { analyzeDiary, analyzeMemory, streamChat, type ChatMsg, type ProviderCfg } from "@/lib/chat";
 import {
   DEFAULT_PERSONALITY, DEFAULT_PROFILE, GIFTS, MILESTONES, OUTINGS, SHOP_PRODUCTS,
   type CompanionMemory, type CompanionProfile, type MemoryKind, type PersonalityTraits, type RandomEvent, type ReplyStyle, type WeatherInfo,
@@ -50,7 +50,7 @@ export function preferredOuting(affinity: number, profileName: string) {
 }
 
 export interface PointEntry { id: string; amount: number; reason: string; ts: number }
-export interface DiaryEntry { date: string; title: string; content: string; updatedAt: number }
+export interface DiaryEntry { date: string; title: string; content: string; updatedAt: number; emotion?: string; carryover?: string; sealed?: boolean }
 export interface Agreement {
   id: string;
   text: string;
@@ -149,6 +149,9 @@ interface State {
   rollingSummary: string;
   lastAnalyzedMessageCount: number;
   analyzingMemory: boolean;
+  analyzingDiary: boolean;
+  lastDiaryAnalyzedCount: number;
+  lastDiaryAnalyzedDate: string | null;
   streaming: boolean;
   error: string | null;
 
@@ -166,6 +169,7 @@ interface State {
   snoozeAgreement: (id: string) => void;
   checkAgreementReminders: () => void;
   refreshMemoryAnalysis: () => Promise<void>;
+  refreshDiaryAnalysis: () => Promise<void>;
   greetOnReturn: () => void;
   proactivePing: () => void;
   markActive: () => void;
@@ -235,6 +239,9 @@ export const useStore = create<State>()(
       rollingSummary: "",
       lastAnalyzedMessageCount: 0,
       analyzingMemory: false,
+      analyzingDiary: false,
+      lastDiaryAnalyzedCount: 0,
+      lastDiaryAnalyzedDate: null,
       streaming: false,
       error: null,
 
@@ -369,6 +376,40 @@ export const useStore = create<State>()(
           set({ analyzingMemory: false });
         }
       },
+      refreshDiaryAnalysis: async () => {
+        const state = get();
+        if (state.analyzingDiary) return;
+        const today = todayStr();
+        const todayMessages = state.messages.filter((message) => message.kind === "chat" && message.content.trim() && dateStr(new Date(message.ts)) === today);
+        if (!todayMessages.some((message) => message.role === "user")) return;
+        set({ analyzingDiary: true });
+        try {
+          const result = await analyzeDiary({
+            date: today,
+            profile: { name: state.profile.name, userNickname: state.profile.userNickname },
+            messages: todayMessages.map((message) => ({ role: message.role, content: message.content })),
+            experiences: state.experiences.filter((item) => dateStr(new Date(item.ts)) === today).map((item) => ({ title: item.title, detail: item.detail, kind: item.kind })),
+            agreements: state.agreements.filter((item) => dateStr(new Date(item.createdAt)) === today || (item.completedAt && dateStr(new Date(item.completedAt)) === today)).map((item) => ({ text: item.text, status: item.status, dueDate: item.dueDate })),
+            provider: state.provider,
+          });
+          set((current) => {
+            const sealed = current.diaries.map((entry) => entry.date < today ? { ...entry, sealed: true } : entry);
+            if (!result.available || !result.content) return { analyzingDiary: false, lastDiaryAnalyzedCount: todayMessages.length, lastDiaryAnalyzedDate: today, diaries: sealed };
+            const diary: DiaryEntry = {
+              date: today,
+              title: result.title || `${today} · 和${current.profile.userNickname}的一天`,
+              content: result.content,
+              emotion: result.emotion,
+              carryover: result.carryover,
+              sealed: false,
+              updatedAt: Date.now(),
+            };
+            return { analyzingDiary: false, lastDiaryAnalyzedCount: todayMessages.length, lastDiaryAnalyzedDate: today, diaries: [...sealed.filter((entry) => entry.date !== today), diary].slice(-90) };
+          });
+        } catch {
+          set({ analyzingDiary: false });
+        }
+      },
       markActive: () => set({ lastActiveAt: Date.now() }),
       greetOnReturn: () => {
         const state = get();
@@ -413,6 +454,8 @@ export const useStore = create<State>()(
           experiences: save.experiences,
           rollingSummary: save.rollingSummary,
           lastAnalyzedMessageCount: save.lastAnalyzedMessageCount,
+          lastDiaryAnalyzedCount: save.lastDiaryAnalyzedCount,
+          lastDiaryAnalyzedDate: save.lastDiaryAnalyzedDate,
         } };
       },
       importSave: (data) => {
@@ -448,6 +491,9 @@ export const useStore = create<State>()(
           rollingSummary: typeof incoming.rollingSummary === "string" ? incoming.rollingSummary.slice(0, 900) : "",
           lastAnalyzedMessageCount: typeof incoming.lastAnalyzedMessageCount === "number" ? Math.max(0, incoming.lastAnalyzedMessageCount) : 0,
           analyzingMemory: false,
+          analyzingDiary: false,
+          lastDiaryAnalyzedCount: typeof incoming.lastDiaryAnalyzedCount === "number" ? Math.max(0, incoming.lastDiaryAnalyzedCount) : 0,
+          lastDiaryAnalyzedDate: typeof incoming.lastDiaryAnalyzedDate === "string" ? incoming.lastDiaryAnalyzedDate : null,
           provider: current.provider, streaming: false, error: null,
         });
         return null;
@@ -628,7 +674,7 @@ export const useStore = create<State>()(
           messages: [], affinity: 5, mood: 60, personality: DEFAULT_PERSONALITY,
           lastCheckIn: null, lastGiftDate: null, giftsToday: 0, lastOutingDate: null,
           pendingEvent: null, pendingEventInstanceId: null, eventDate: null, eventsToday: 0, eventAttemptsToday: 0, firstChatDate: null,
-          adultMode: false, memories: [], unlockedMilestones: [], diaries: [], agreements: [], experiences: [], rollingSummary: "", lastAnalyzedMessageCount: 0, analyzingMemory: false, lastProactiveAt: null,
+          adultMode: false, memories: [], unlockedMilestones: [], diaries: [], agreements: [], experiences: [], rollingSummary: "", lastAnalyzedMessageCount: 0, analyzingMemory: false, analyzingDiary: false, lastDiaryAnalyzedCount: 0, lastDiaryAnalyzedDate: null, lastProactiveAt: null,
         }),
 
       send: async (text) => {
@@ -678,6 +724,14 @@ export const useStore = create<State>()(
           .sort((a, b) => keywordScore(`${b.title}${b.detail}`, lastUserText) - keywordScore(`${a.title}${a.detail}`, lastUserText) || b.ts - a.ts)
           .slice(0, 2)
           .map((item) => ({ id: `experience-${item.id}`, kind: "important", ts: item.ts, text: `你们的共同经历：${item.title}；${item.detail}` }));
+        const diaryMemories: CompanionMemory[] = [...state.diaries]
+          .filter((entry) => entry.date < todayStr())
+          .sort((a, b) => keywordScore(`${b.title}${b.content}`, lastUserText) - keywordScore(`${a.title}${a.content}`, lastUserText) || b.date.localeCompare(a.date))
+          .slice(0, 2)
+          .map((entry) => ({
+            id: `diary-${entry.date}`, kind: "important", ts: entry.updatedAt,
+            text: `过去的关系日记（${entry.date}，情绪：${entry.emotion || "未记录"}）：${entry.content.slice(0, 180)}${entry.carryover ? `；可自然延续：${entry.carryover}` : ""}`,
+          }));
         const pendingAgreements = state.agreements.filter((item) => item.status === "pending");
         const agreementMemories: CompanionMemory[] = pendingAgreements
           .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"))
@@ -687,7 +741,7 @@ export const useStore = create<State>()(
           { context: {
             affinity: state.affinity, mood: state.mood, earlierDigest: state.rollingSummary || earlierDigest(history),
             personality: state.personality, replyStyle: state.replyStyle, hour: new Date().getHours(),
-            profile: state.profile, weather: state.weather, adultMode: state.adultMode, memories: [...relevantMemories, ...experienceMemories, ...agreementMemories],
+            profile: state.profile, weather: state.weather, adultMode: state.adultMode, memories: [...relevantMemories, ...experienceMemories, ...diaryMemories, ...agreementMemories],
           }, messages: apiMessages, provider: state.provider },
           {
             onDelta: (t) =>
@@ -724,7 +778,7 @@ export const useStore = create<State>()(
                     id: uid(), role: "assistant" as const, content: item.text, ts: Date.now(), kind: "milestone" as const,
                     hiddenPrompt: item.title,
                   }))],
-                  diaries: todayMessages.some((message) => message.role === "user")
+                  diaries: todayMessages.some((message) => message.role === "user") && !s.diaries.some((item) => item.date === today && item.emotion)
                     ? [...s.diaries.filter((item) => item.date !== today), diary].slice(-90)
                     : s.diaries,
                 };
@@ -732,6 +786,10 @@ export const useStore = create<State>()(
               const afterTurn = get();
               const chatCount = afterTurn.messages.filter((message) => message.kind === "chat" && message.content.trim()).length;
               if (chatCount >= afterTurn.lastAnalyzedMessageCount + 8) void afterTurn.refreshMemoryAnalysis();
+              const today = todayStr();
+              const todayChatCount = afterTurn.messages.filter((message) => message.kind === "chat" && message.content.trim() && dateStr(new Date(message.ts)) === today).length;
+              const diaryBase = afterTurn.lastDiaryAnalyzedDate === today ? afterTurn.lastDiaryAnalyzedCount : 0;
+              if (todayChatCount >= Math.max(6, diaryBase + 6)) void afterTurn.refreshDiaryAnalysis();
             },
             onError: (message) =>
               set((s) => ({
@@ -785,6 +843,8 @@ export const useStore = create<State>()(
         experiences: s.experiences,
         rollingSummary: s.rollingSummary,
         lastAnalyzedMessageCount: s.lastAnalyzedMessageCount,
+        lastDiaryAnalyzedCount: s.lastDiaryAnalyzedCount,
+        lastDiaryAnalyzedDate: s.lastDiaryAnalyzedDate,
       }),
     },
   ),

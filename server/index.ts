@@ -67,6 +67,15 @@ interface MemoryAnalysisResult {
   memories: Array<{ text: string; kind: "name" | "preference" | "habit" | "important" }>;
   agreements: Array<{ text: string; dueDate: string | null }>;
 }
+interface DiaryAnalysisBody {
+  date?: string;
+  profile?: { name?: string; userNickname?: string };
+  messages?: ChatMsg[];
+  experiences?: Array<{ title?: string; detail?: string; kind?: string }>;
+  agreements?: Array<{ text?: string; status?: string; dueDate?: string | null }>;
+  provider?: ProviderCfg;
+}
+interface DiaryAnalysisResult { title: string; content: string; emotion: string; carryover: string }
 interface WeatherResponse {
   location: string;
   temperature: number;
@@ -168,6 +177,54 @@ async function runMemoryAnalysis(body: MemoryAnalysisBody): Promise<MemoryAnalys
     raw = response.content.filter((item) => item.type === "text").map((item) => item.text).join("");
   }
   return parseMemoryAnalysis(raw);
+}
+
+function parseDiaryAnalysis(raw: string, date: string): DiaryAnalysisResult {
+  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  const value = JSON.parse(cleaned) as Partial<DiaryAnalysisResult>;
+  return {
+    title: String(value.title || `${date} · 今天的日记`).trim().slice(0, 50),
+    content: String(value.content || "").trim().slice(0, 1200),
+    emotion: String(value.emotion || "平静").trim().slice(0, 30),
+    carryover: String(value.carryover || "").trim().slice(0, 160),
+  };
+}
+
+async function runDiaryAnalysis(body: DiaryAnalysisBody): Promise<DiaryAnalysisResult | null> {
+  const provider = body.provider || { mode: "default" as const };
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(body.date)) ? String(body.date) : new Date().toISOString().slice(0, 10);
+  const name = String(body.profile?.name || "可可").slice(0, 12);
+  const userNickname = String(body.profile?.userNickname || "哥哥").slice(0, 12);
+  const input = {
+    date,
+    messages: Array.isArray(body.messages) ? body.messages.slice(-30).map((item) => ({ role: item.role, content: String(item.content || "").slice(0, 500) })) : [],
+    experiences: Array.isArray(body.experiences) ? body.experiences.slice(-12).map((item) => ({ title: String(item.title || "").slice(0, 60), detail: String(item.detail || "").slice(0, 160), kind: item.kind })) : [],
+    agreements: Array.isArray(body.agreements) ? body.agreements.slice(-12).map((item) => ({ text: String(item.text || "").slice(0, 80), status: item.status, dueDate: item.dueDate })) : [],
+  };
+  if (!input.messages.some((item) => item.role === "user" && item.content.trim())) return null;
+  const system = `你是陪伴应用中${name}的日记整理器。只返回 JSON，不要 Markdown。
+只能使用输入中真实出现的聊天、共同经历和约定，严禁虚构用户做过的事。用${name}第一人称写中文短日记，称呼用户为“${userNickname}”。不要逐字复制敏感聊天，不写露骨内容。
+content 控制在 120～260 字，概括当天话题、双方情绪、关系变化及一个克制的小感受。emotion 用不超过10字概括当天情绪。carryover 是下一次聊天可自然延续的一条简短情绪或未完话题；没有则为空字符串。
+格式：{"title":"日期与简短标题","content":"日记正文","emotion":"情绪","carryover":"下次聊天延续提示"}`;
+  const userContent = JSON.stringify(input);
+  let raw = "";
+  if (provider.mode === "custom") {
+    if (!provider.baseURL || !provider.apiKey || !provider.model) throw new Error("自定义供应商需要填写接口地址、API Key 和模型名。");
+    const url = `${normalizeBaseURL(provider.baseURL)}/chat/completions`;
+    let response: Response;
+    try {
+      response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.apiKey}` }, body: JSON.stringify({ model: provider.model, stream: false, messages: [{ role: "system", content: system }, { role: "user", content: userContent }] }), signal: AbortSignal.timeout(30_000) });
+    } catch (error) { throw new Error(fetchErrorMessage(error, url)); }
+    if (!response.ok) throw new Error(`供应商返回 ${response.status}：${(await response.text()).slice(0, 300)}`);
+    const json = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    raw = String(json.choices?.[0]?.message?.content || "");
+  } else {
+    if (!process.env.ANTHROPIC_API_KEY) return null;
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const response = await client.messages.create({ model: DEFAULT_MODEL, max_tokens: 900, system, messages: [{ role: "user", content: userContent }] });
+    raw = response.content.filter((item) => item.type === "text").map((item) => item.text).join("");
+  }
+  return parseDiaryAnalysis(raw, date);
 }
 
 function sseInit(res: express.Response) {
@@ -498,6 +555,18 @@ app.post("/api/memory-analysis", async (req, res) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "整理记忆时发生未知错误。";
     console.error("[ai-companion] 整理记忆失败：", message);
+    res.status(502).json({ error: message });
+  }
+});
+
+app.post("/api/diary-analysis", async (req, res) => {
+  try {
+    const result = await runDiaryAnalysis(req.body as DiaryAnalysisBody);
+    if (!result) { res.json({ available: false, error: "当前没有可用于生成日记的模型或当天没有真实聊天。" }); return; }
+    res.json({ available: true, ...result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "生成日记时发生未知错误。";
+    console.error("[ai-companion] 生成日记失败：", message);
     res.status(502).json({ error: message });
   }
 });

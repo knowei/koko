@@ -21,6 +21,8 @@ export function MemoryScreen() {
   const rollingSummary = useStore((state) => state.rollingSummary);
   const analyzingMemory = useStore((state) => state.analyzingMemory);
   const refreshMemoryAnalysis = useStore((state) => state.refreshMemoryAnalysis);
+  const analyzingDiary = useStore((state) => state.analyzingDiary);
+  const refreshDiaryAnalysis = useStore((state) => state.refreshDiaryAnalysis);
   const [draft, setDraft] = useState("");
   const [kind, setKind] = useState<MemoryKind>("important");
   const [agreementDraft, setAgreementDraft] = useState("");
@@ -101,12 +103,17 @@ export function MemoryScreen() {
 
         <section className="memory-page-card diary-page">
           <div className="memory-page-title"><strong>{profile.name}的日记</strong><span>{diaries.length}篇</span></div>
+          <button className="diary-refresh" disabled={analyzingDiary || !messages.some((message) => message.kind === "chat" && message.role === "user")} onClick={() => void refreshDiaryAnalysis()}>
+            {analyzingDiary ? "正在整理今天…" : "用模型整理今日日记"}
+          </button>
           <div className="diary-list">
             {diaries.length === 0 && <div className="empty-memory">今天完成一次真实聊天后，第一篇日记会出现在这里。</div>}
             {[...diaries].reverse().map((diary) => (
               <article key={diary.date} className="diary-entry">
                 <div className="diary-heading"><strong>{diary.title}</strong><button onClick={() => removeDiary(diary.date)}>删除</button></div>
+                {diary.emotion && <div className="diary-emotion">今日情绪 · {diary.emotion}{diary.sealed ? " · 已封存" : " · 持续记录中"}</div>}
                 <p>{diary.content}</p>
+                {diary.carryover && <div className="diary-carryover">下次想继续：{diary.carryover}</div>}
               </article>
             ))}
           </div>

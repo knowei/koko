@@ -31,6 +31,15 @@ export interface MemoryAnalysisResult {
   error?: string;
 }
 
+export interface DiaryAnalysisResult {
+  available: boolean;
+  title?: string;
+  content?: string;
+  emotion?: string;
+  carryover?: string;
+  error?: string;
+}
+
 interface StreamHandlers {
   onDelta: (text: string) => void;
   onDone: () => void;
@@ -97,5 +106,23 @@ export async function analyzeMemory(params: {
   });
   const payload = await response.json().catch(() => ({})) as MemoryAnalysisResult;
   if (!response.ok) throw new Error(payload.error || `整理记忆失败：HTTP ${response.status}`);
+  return payload;
+}
+
+export async function analyzeDiary(params: {
+  date: string;
+  profile: { name: string; userNickname: string };
+  messages: ChatMsg[];
+  experiences: Array<{ title: string; detail: string; kind: string }>;
+  agreements: Array<{ text: string; status: string; dueDate: string | null }>;
+  provider: ProviderCfg;
+}): Promise<DiaryAnalysisResult> {
+  const response = await fetch("/api/diary-analysis", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  const payload = await response.json().catch(() => ({})) as DiaryAnalysisResult;
+  if (!response.ok) throw new Error(payload.error || `生成日记失败：HTTP ${response.status}`);
   return payload;
 }
