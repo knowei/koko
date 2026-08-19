@@ -677,6 +677,15 @@ body {
 .memory-hero p { margin: 7px 0 0; color: var(--ink-soft); font-size: 13px; }
 .memory-columns { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 14px; margin-top: 14px; }
 .agreement-page { margin-top: 14px; }
+.experience-page { margin-top: 14px; }
+.experience-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 9px; }
+.experience-record { padding: 11px; border: 1px solid #eadbd3; border-radius: 12px; background: linear-gradient(145deg, #fffaf4, #fff); }
+.experience-record > div { display: flex; justify-content: space-between; color: var(--ink-soft); font-size: 10px; }
+.experience-record button { border: 0; background: none; color: #b98282; cursor: pointer; font-size: 10px; }
+.experience-record strong { display: block; margin-top: 6px; color: #93636e; font-size: 13px; }
+.experience-record p { margin: 5px 0 0; color: var(--ink); font-size: 11.5px; line-height: 1.55; }
+.experience-record.outing { background: linear-gradient(145deg, #f4fbf5, #fff); }
+.experience-record.gift { background: linear-gradient(145deg, #fff4f6, #fff); }
 .memory-analysis-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; background: linear-gradient(120deg, #f8f6ff, #fffaf5); }
 .memory-analysis-card strong { color: var(--pink); font-family: var(--display); font-size: 17px; }
 .memory-analysis-card p { max-width: 720px; margin: 5px 0 0; color: var(--ink-soft); font-size: 12px; line-height: 1.55; }
@@ -742,6 +751,9 @@ body {
   padding: 4px 14px;
   margin: 2px 0;
 }
+.experience-chat-card { align-self: center; width: min(420px, 88%); padding: 12px 15px; border: 1px solid #e7cfc4; border-radius: 14px; background: linear-gradient(135deg, #fff7ed, #fff1f5); box-shadow: 0 4px 14px rgba(140, 91, 104, .1); }
+.experience-chat-card strong { color: var(--pink); font-family: var(--display); }
+.experience-chat-card p { margin: 5px 0 0; white-space: pre-wrap; font-size: 12px; line-height: 1.55; }
 .milestone-card {
   align-self: center; width: min(88%, 420px); padding: 14px 16px; border: 1.5px solid #e2a2b3;
   border-radius: 15px; background: linear-gradient(135deg, #fff8f4, #fff1f5); color: var(--ink);

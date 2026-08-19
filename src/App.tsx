@@ -27,6 +27,7 @@ export default function App() {
   const greetOnReturn = useStore((s) => s.greetOnReturn);
   const proactivePing = useStore((s) => s.proactivePing);
   const markActive = useStore((s) => s.markActive);
+  const checkAgreementReminders = useStore((s) => s.checkAgreementReminders);
 
   const lv = affinityLevel(affinity);
   const routine = getRoutine(now.getHours());
@@ -35,6 +36,12 @@ export default function App() {
   useEffect(() => {
     void syncWallet();
   }, [syncWallet]);
+
+  useEffect(() => {
+    const reminder = window.setTimeout(() => checkAgreementReminders(), 1800);
+    const daily = window.setInterval(() => checkAgreementReminders(), 30 * 60_000);
+    return () => { window.clearTimeout(reminder); window.clearInterval(daily); };
+  }, [checkAgreementReminders]);
 
   useEffect(() => {
     greetOnReturn();

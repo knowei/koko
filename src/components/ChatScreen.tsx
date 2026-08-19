@@ -36,6 +36,8 @@ export function ChatScreen() {
             </div>
           ) : m.kind === "milestone" ? (
             <div key={m.id} className="milestone-card"><strong>🎀 关系里程碑</strong><p>{m.content}</p></div>
+          ) : m.kind === "experience" ? (
+            <div key={m.id} className="experience-chat-card"><strong>共同经历</strong><p>{m.content}</p></div>
           ) : (
             <div key={m.id} className={`row ${m.role}`}>
               <div className={`bubble ${m.role}`}>

@@ -13,8 +13,11 @@ export function MemoryScreen() {
   const removeDiary = useStore((state) => state.removeDiary);
   const profile = useStore((state) => state.profile);
   const agreements = useStore((state) => state.agreements);
+  const experiences = useStore((state) => state.experiences);
+  const removeExperience = useStore((state) => state.removeExperience);
   const addAgreement = useStore((state) => state.addAgreement);
   const updateAgreementStatus = useStore((state) => state.updateAgreementStatus);
+  const snoozeAgreement = useStore((state) => state.snoozeAgreement);
   const rollingSummary = useStore((state) => state.rollingSummary);
   const analyzingMemory = useStore((state) => state.analyzingMemory);
   const refreshMemoryAnalysis = useStore((state) => state.refreshMemoryAnalysis);
@@ -54,8 +57,22 @@ export function MemoryScreen() {
               <div><strong>{agreement.text}</strong><span>{agreement.dueDate ? `预计 ${agreement.dueDate}` : "还没定时间"}</span></div>
               {agreement.status === "pending" ? <div className="agreement-actions">
                 <button onClick={() => updateAgreementStatus(agreement.id, "completed")}>完成了</button>
+                <button onClick={() => snoozeAgreement(agreement.id)}>改到明天</button>
                 <button onClick={() => updateAgreementStatus(agreement.id, "cancelled")}>取消</button>
               </div> : <em>{agreement.status === "completed" ? "已完成 · 已写入共同经历" : "已取消"}</em>}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="memory-page-card experience-page">
+        <div className="memory-page-title"><strong>共同经历</strong><span>{experiences.length}件</span></div>
+        <div className="experience-grid">
+          {experiences.length === 0 && <div className="empty-memory">完成约定、一起外出、送礼物或经历随机事件后，会留下属于你们的共同回忆。</div>}
+          {[...experiences].reverse().slice(0, 12).map((experience) => (
+            <article key={experience.id} className={`experience-record ${experience.kind}`}>
+              <div><span>{new Date(experience.ts).toLocaleDateString("zh-CN")}</span><button onClick={() => removeExperience(experience.id)}>删除</button></div>
+              <strong>{experience.title}</strong><p>{experience.detail}</p>
             </article>
           ))}
         </div>

@@ -11,7 +11,7 @@ export interface StoredMsg {
   role: "user" | "assistant";
   content: string;
   ts: number;
-  kind?: "chat" | "event" | "milestone" | "hidden";
+  kind?: "chat" | "event" | "milestone" | "experience" | "hidden";
   hiddenPrompt?: string;
 }
 
@@ -58,6 +58,14 @@ export interface Agreement {
   status: "pending" | "completed" | "cancelled";
   createdAt: number;
   completedAt?: number;
+  lastRemindedDate?: string;
+}
+export interface Experience {
+  id: string;
+  title: string;
+  detail: string;
+  kind: "agreement" | "outing" | "gift" | "event";
+  ts: number;
 }
 
 const KEEP_RECENT = 14;
@@ -137,6 +145,7 @@ interface State {
   lastProactiveAt: number | null;
   diaries: DiaryEntry[];
   agreements: Agreement[];
+  experiences: Experience[];
   rollingSummary: string;
   lastAnalyzedMessageCount: number;
   analyzingMemory: boolean;
@@ -151,8 +160,11 @@ interface State {
   addMemory: (text: string, kind?: MemoryKind) => void;
   removeMemory: (id: string) => void;
   removeDiary: (date: string) => void;
+  removeExperience: (id: string) => void;
   addAgreement: (text: string, dueDate?: string | null) => void;
   updateAgreementStatus: (id: string, status: Agreement["status"]) => void;
+  snoozeAgreement: (id: string) => void;
+  checkAgreementReminders: () => void;
   refreshMemoryAnalysis: () => Promise<void>;
   greetOnReturn: () => void;
   proactivePing: () => void;
@@ -219,6 +231,7 @@ export const useStore = create<State>()(
       lastProactiveAt: null,
       diaries: [],
       agreements: [],
+      experiences: [],
       rollingSummary: "",
       lastAnalyzedMessageCount: 0,
       analyzingMemory: false,
@@ -261,6 +274,7 @@ export const useStore = create<State>()(
       },
       removeMemory: (id) => set((s) => ({ memories: s.memories.filter((item) => item.id !== id) })),
       removeDiary: (date) => set((s) => ({ diaries: s.diaries.filter((item) => item.date !== date) })),
+      removeExperience: (id) => set((s) => ({ experiences: s.experiences.filter((item) => item.id !== id) })),
       addAgreement: (text, dueDate = null) => {
         const value = text.trim().slice(0, 80);
         if (!value) return;
@@ -276,8 +290,9 @@ export const useStore = create<State>()(
           ? { ...item, status, completedAt: status === "completed" ? Date.now() : item.completedAt }
           : item);
         if (status !== "completed") return { agreements };
-        const experience = `共同完成约定：${target.text}`;
-        const experienceMemory: CompanionMemory = { id: uid(), text: experience, kind: "important", ts: Date.now() };
+        const experienceText = `共同完成约定：${target.text}`;
+        const experienceMemory: CompanionMemory = { id: uid(), text: experienceText, kind: "important", ts: Date.now() };
+        const experience: Experience = { id: uid(), title: "兑现了约定", detail: target.text, kind: "agreement", ts: Date.now() };
         const today = todayStr();
         const existing = s.diaries.find((entry) => entry.date === today);
         const diary: DiaryEntry = existing
@@ -285,10 +300,37 @@ export const useStore = create<State>()(
           : { date: today, title: `${today} · 和${s.profile.userNickname}的一天`, content: `今天我们完成了约定：${target.text}\n\n我想把这一点点兑现的心意认真记下来。`, updatedAt: Date.now() };
         return {
           agreements,
-          memories: s.memories.some((item) => item.text === experience) ? s.memories : [...s.memories, experienceMemory].slice(-50),
+          memories: s.memories.some((item) => item.text === experienceText) ? s.memories : [...s.memories, experienceMemory].slice(-50),
+          experiences: [...s.experiences, experience].slice(-100),
+          messages: [...s.messages, { id: uid(), role: "assistant", content: `🎞️ ${experience.title}\n${experience.detail}`, ts: Date.now(), kind: "experience" }],
           diaries: [...s.diaries.filter((entry) => entry.date !== today), diary].slice(-90),
         };
       }),
+      snoozeAgreement: (id) => set((s) => ({
+        agreements: s.agreements.map((agreement) => agreement.id === id && agreement.status === "pending"
+          ? { ...agreement, dueDate: dateAfter(1), lastRemindedDate: undefined }
+          : agreement),
+      })),
+      checkAgreementReminders: () => {
+        const state = get();
+        if (state.streaming) return;
+        const today = todayStr();
+        const due = state.agreements
+          .filter((agreement) => agreement.status === "pending" && agreement.dueDate && agreement.dueDate <= today && agreement.lastRemindedDate !== today)
+          .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0];
+        if (!due) return;
+        const overdue = due.dueDate! < today;
+        set((s) => ({
+          agreements: s.agreements.map((agreement) => agreement.id === due.id ? { ...agreement, lastRemindedDate: today } : agreement),
+          messages: [...s.messages, {
+            id: uid(), role: "user", content: "", ts: Date.now(), kind: "hidden",
+            hiddenPrompt: overdue
+              ? `你们约好的“${due.text}”已经过了预计日期。温和自然地问一句是否完成、需要改到明天或取消，不要责备，不要重复解释系统。`
+              : `今天是你们约好的“${due.text}”的预计日期。像亲近的妹妹一样自然提醒一句，并询问完成了还是要改到明天。`,
+          }],
+        }));
+        void get()._runTurn();
+      },
       refreshMemoryAnalysis: async () => {
         const state = get();
         if (state.analyzingMemory) return;
@@ -368,6 +410,7 @@ export const useStore = create<State>()(
           memories: save.memories, unlockedMilestones: save.unlockedMilestones,
           diaries: save.diaries,
           agreements: save.agreements,
+          experiences: save.experiences,
           rollingSummary: save.rollingSummary,
           lastAnalyzedMessageCount: save.lastAnalyzedMessageCount,
         } };
@@ -401,6 +444,7 @@ export const useStore = create<State>()(
           unlockedMilestones: Array.isArray(incoming.unlockedMilestones) ? incoming.unlockedMilestones : [],
           diaries: Array.isArray(incoming.diaries) ? incoming.diaries : [],
           agreements: Array.isArray(incoming.agreements) ? incoming.agreements : [],
+          experiences: Array.isArray(incoming.experiences) ? incoming.experiences : [],
           rollingSummary: typeof incoming.rollingSummary === "string" ? incoming.rollingSummary.slice(0, 900) : "",
           lastAnalyzedMessageCount: typeof incoming.lastAnalyzedMessageCount === "number" ? Math.max(0, incoming.lastAnalyzedMessageCount) : 0,
           analyzingMemory: false,
@@ -462,6 +506,7 @@ export const useStore = create<State>()(
           lastGiftDate: t,
           giftsToday: giftsToday + 1,
           inventory: { ...s.inventory, [id]: Number(data.quantity) || 0 },
+          experiences: [...s.experiences, { id: uid(), title: `送给${s.profile.name}一份礼物`, detail: `${gift.emoji} ${gift.name}`, kind: "gift" as const, ts: Date.now() }].slice(-100),
           messages: [
             ...s.messages,
             {
@@ -490,6 +535,10 @@ export const useStore = create<State>()(
         const affinityReward = matchedWish ? outing.affinity * 2 : outing.affinity;
         set({
           lastOutingDate: today,
+          experiences: [...state.experiences, {
+            id: uid(), title: `一起去了${outing.name}`, detail: matchedWish ? "选中了她今天最想去的地方，心有灵犀。" : outing.prompt,
+            kind: "outing" as const, ts: Date.now(),
+          }].slice(-100),
           messages: [...state.messages, {
             id: uid(), role: "user", ts: Date.now(), kind: "event",
             content: `今天和可可去了${outing.name}${outing.emoji}${matchedWish ? ` · 心有灵犀，好感奖励 ×2（+${affinityReward}）` : ""}`,
@@ -562,6 +611,7 @@ export const useStore = create<State>()(
           personality: addTraits(s.personality, choice.personality),
           pointLedger: [...s.pointLedger, { id: uid(), amount: reward, reason: `事件：${event.title}`, ts: Date.now() }].slice(-100),
           unlockedMilestones: [...s.unlockedMilestones, ...unlocked.map((item) => item.id)],
+          experiences: [...s.experiences, { id: uid(), title: event.title, detail: choice.result, kind: "event" as const, ts: Date.now() }].slice(-100),
           messages: [...s.messages, {
             id: uid(), role: "user", ts: Date.now(), kind: "event",
             content: `${event.emoji} ${event.title} · ${choice.result} · 获得 ${reward} 心愿星`,
@@ -578,7 +628,7 @@ export const useStore = create<State>()(
           messages: [], affinity: 5, mood: 60, personality: DEFAULT_PERSONALITY,
           lastCheckIn: null, lastGiftDate: null, giftsToday: 0, lastOutingDate: null,
           pendingEvent: null, pendingEventInstanceId: null, eventDate: null, eventsToday: 0, eventAttemptsToday: 0, firstChatDate: null,
-          adultMode: false, memories: [], unlockedMilestones: [], diaries: [], agreements: [], rollingSummary: "", lastAnalyzedMessageCount: 0, analyzingMemory: false, lastProactiveAt: null,
+          adultMode: false, memories: [], unlockedMilestones: [], diaries: [], agreements: [], experiences: [], rollingSummary: "", lastAnalyzedMessageCount: 0, analyzingMemory: false, lastProactiveAt: null,
         }),
 
       send: async (text) => {
@@ -624,6 +674,10 @@ export const useStore = create<State>()(
         const relevantMemories = [...state.memories]
           .sort((a, b) => keywordScore(b.text, lastUserText) - keywordScore(a.text, lastUserText) || b.ts - a.ts)
           .slice(0, 5);
+        const experienceMemories: CompanionMemory[] = [...state.experiences]
+          .sort((a, b) => keywordScore(`${b.title}${b.detail}`, lastUserText) - keywordScore(`${a.title}${a.detail}`, lastUserText) || b.ts - a.ts)
+          .slice(0, 2)
+          .map((item) => ({ id: `experience-${item.id}`, kind: "important", ts: item.ts, text: `你们的共同经历：${item.title}；${item.detail}` }));
         const pendingAgreements = state.agreements.filter((item) => item.status === "pending");
         const agreementMemories: CompanionMemory[] = pendingAgreements
           .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"))
@@ -633,7 +687,7 @@ export const useStore = create<State>()(
           { context: {
             affinity: state.affinity, mood: state.mood, earlierDigest: state.rollingSummary || earlierDigest(history),
             personality: state.personality, replyStyle: state.replyStyle, hour: new Date().getHours(),
-            profile: state.profile, weather: state.weather, adultMode: state.adultMode, memories: [...relevantMemories, ...agreementMemories],
+            profile: state.profile, weather: state.weather, adultMode: state.adultMode, memories: [...relevantMemories, ...experienceMemories, ...agreementMemories],
           }, messages: apiMessages, provider: state.provider },
           {
             onDelta: (t) =>
@@ -728,6 +782,7 @@ export const useStore = create<State>()(
         lastProactiveAt: s.lastProactiveAt,
         diaries: s.diaries,
         agreements: s.agreements,
+        experiences: s.experiences,
         rollingSummary: s.rollingSummary,
         lastAnalyzedMessageCount: s.lastAnalyzedMessageCount,
       }),
