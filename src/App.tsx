@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useStore } from "@/store/companionStore";
 import { affinityLevel, getRoutine, moodLabel, personalityLabel } from "@/data/persona";
+import { EXPRESSION_MAP } from "@/lib/messageParser";
 import { Avatar } from "@/components/Avatar";
 import { ChatScreen } from "@/components/ChatScreen";
 import { SidePanel } from "@/components/SidePanel";
@@ -19,6 +20,7 @@ export default function App() {
   const profile = useStore((s) => s.profile);
   const weather = useStore((s) => s.weather);
   const activeSkin = useStore((s) => s.activeSkin);
+  const currentExpression = useStore((s) => s.currentExpression);
   const setWeather = useStore((s) => s.setWeather);
   const syncWallet = useStore((s) => s.syncWallet);
   const [showSettings, setShowSettings] = useState(false);
@@ -91,7 +93,18 @@ export default function App() {
       <div className="phone">
         <header className="topbar">
           <div className="who">
-            <Avatar name={profile.name} skin={activeSkin} size={54} />
+            <div className="avatar-header-box">
+              <Avatar name={profile.name} skin={activeSkin} size={54} />
+              {currentExpression !== "normal" && (
+                <div
+                  className="avatar-expression-badge"
+                  key={currentExpression}
+                  title={`当前表情：${EXPRESSION_MAP[currentExpression].label}`}
+                >
+                  {EXPRESSION_MAP[currentExpression].emoji}
+                </div>
+              )}
+            </div>
             <div className="who-text">
               <div className="who-name">{profile.name}</div>
               <div className="routine-inline">{currentTime} · {routine.emoji} {routine.label}</div>

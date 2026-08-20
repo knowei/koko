@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { analyzeDiary, analyzeMemory, streamChat, type ChatMsg, type ProviderCfg } from "@/lib/chat";
+import { DEFAULT_TTS_SETTINGS, type TTSSettings, ttsPlayer } from "@/lib/tts";
+import { extractTagsAndClean, detectExpression, type ExpressionType } from "@/lib/messageParser";
 import {
   DEFAULT_PERSONALITY, DEFAULT_PROFILE, GIFTS, MILESTONES, OUTINGS, SHOP_PRODUCTS,
   type CompanionMemory, type CompanionProfile, type MemoryKind, type PersonalityTraits, type RandomEvent, type ReplyStyle, type WeatherInfo,
@@ -155,6 +157,10 @@ interface State {
   lastDiaryAnalyzedDate: string | null;
   streaming: boolean;
   error: string | null;
+  ttsSettings: TTSSettings;
+  currentlySpeakingId: string | null;
+  currentExpression: ExpressionType;
+  expressionExpiry: number;
 
   setProvider: (cfg: ProviderCfg) => void;
   setReplyStyle: (style: ReplyStyle) => void;
@@ -162,6 +168,10 @@ interface State {
   setWeather: (weather: WeatherInfo | null) => void;
   setAdultMode: (enabled: boolean) => void;
   setPreviewSkin: (skin: string | null) => void;
+  setExpression: (expr: ExpressionType, durationMs?: number) => void;
+  setTtsSettings: (settings: Partial<TTSSettings>) => void;
+  playMessageAudio: (messageId: string) => Promise<void>;
+  stopAudio: () => void;
   quickAction: (actionType: "pat" | "water" | "praise" | "miss") => Promise<void>;
   addMemory: (text: string, kind?: MemoryKind) => void;
   removeMemory: (id: string) => void;
@@ -248,11 +258,40 @@ export const useStore = create<State>()(
       lastDiaryAnalyzedDate: null,
       streaming: false,
       error: null,
+      ttsSettings: DEFAULT_TTS_SETTINGS,
+      currentlySpeakingId: null,
+      currentExpression: "normal" as ExpressionType,
+      expressionExpiry: 0,
 
       setProvider: (cfg) => set({ provider: cfg }),
       setReplyStyle: (replyStyle) => set({ replyStyle }),
       setProfile: (profile) => set({ profile: { ...profile, age: Math.max(18, Math.min(99, profile.age)) } }),
       setPreviewSkin: (previewSkin) => set({ previewSkin }),
+      setExpression: (expr, durationMs = 8000) => {
+        const expiry = Date.now() + durationMs;
+        set({ currentExpression: expr, expressionExpiry: expiry });
+        setTimeout(() => {
+          if (get().expressionExpiry <= Date.now()) {
+            set({ currentExpression: "normal" });
+          }
+        }, durationMs);
+      },
+      setTtsSettings: (patch) => set((s) => ({ ttsSettings: { ...s.ttsSettings, ...patch } })),
+      playMessageAudio: async (messageId) => {
+        const state = get();
+        const msg = state.messages.find((m) => m.id === messageId);
+        if (!msg || !msg.content.trim()) return;
+        await ttsPlayer.play({
+          messageId,
+          text: msg.content,
+          settings: state.ttsSettings,
+          mood: state.mood,
+          hour: new Date().getHours(),
+        });
+      },
+      stopAudio: () => {
+        ttsPlayer.stop();
+      },
       quickAction: async (actionType) => {
         if (get().streaming) return;
         const profile = get().profile;
@@ -797,16 +836,33 @@ export const useStore = create<State>()(
               })),
             onDone: () => {
               if (!get().streaming) return;
+              const curState = get();
+              const finalMsg = curState.messages.find((m) => m.id === assistantId);
+              const rawContent = finalMsg?.content || "";
+              const { cleanedText, expression, moodDelta, affinityDelta } = extractTagsAndClean(rawContent);
+              const detectedExpr = detectExpression(cleanedText, expression);
+
+              if (detectedExpr && detectedExpr !== "normal") {
+                get().setExpression(detectedExpr, 8000);
+              }
+
               set((s) => {
-                const affinity = reward ? clamp(s.affinity + reward.affinity) : s.affinity;
+                let affinity = reward ? clamp(s.affinity + reward.affinity) : s.affinity;
+                if (affinityDelta) affinity = clamp(affinity + affinityDelta);
+                let mood = reward ? clamp(s.mood + reward.mood) : s.mood;
+                if (moodDelta) mood = clamp(mood + moodDelta);
+
                 const unlocked = MILESTONES.filter((item) => affinity >= item.affinity && !s.unlockedMilestones.includes(item.id));
                 const today = todayStr();
-                const todayMessages = s.messages.filter((message) => message.kind === "chat" && message.content.trim() && dateStr(new Date(message.ts)) === today);
+                const updatedMessages = s.messages.map((m) =>
+                  m.id === assistantId ? { ...m, content: cleanedText } : m,
+                );
+                const todayMessages = updatedMessages.filter((message) => message.kind === "chat" && message.content.trim() && dateStr(new Date(message.ts)) === today);
                 const snippets = todayMessages
                   .slice(-6)
                   .map((message) => `${message.role === "user" ? s.profile.userNickname : s.profile.name}：“${message.content.replace(/\s+/g, " ").slice(0, 70)}”`);
-                const feeling = s.mood >= 70 ? "今天和你说话时，我心里暖暖的，也很开心。"
-                  : s.mood < 35 ? "今天的心情有点低落，不过能和你说说话让我安心了一些。"
+                const feeling = mood >= 70 ? "今天和你说话时，我心里暖暖的，也很开心。"
+                  : mood < 35 ? "今天的心情有点低落，不过能和你说说话让我安心了一些。"
                     : affinity >= 50 ? "我们越来越有默契了，我想把这些普通的小事也认真记下来。"
                       : "今天又多了解了你一点，希望明天也能继续聊。";
                 const diary: DiaryEntry = {
@@ -817,9 +873,9 @@ export const useStore = create<State>()(
                 return {
                   streaming: false,
                   affinity,
-                  mood: reward ? clamp(s.mood + reward.mood) : s.mood,
+                  mood,
                   unlockedMilestones: [...s.unlockedMilestones, ...unlocked.map((item) => item.id)],
-                  messages: [...s.messages, ...unlocked.map((item) => ({
+                  messages: [...updatedMessages, ...unlocked.map((item) => ({
                     id: uid(), role: "assistant" as const, content: item.text, ts: Date.now(), kind: "milestone" as const,
                     hiddenPrompt: item.title,
                   }))],
@@ -829,6 +885,9 @@ export const useStore = create<State>()(
                 };
               });
               const afterTurn = get();
+              if (afterTurn.ttsSettings.enabled && afterTurn.ttsSettings.autoPlay) {
+                void afterTurn.playMessageAudio(assistantId);
+              }
               const chatCount = afterTurn.messages.filter((message) => message.kind === "chat" && message.content.trim()).length;
               if (chatCount >= afterTurn.lastAnalyzedMessageCount + 8) void afterTurn.refreshMemoryAnalysis();
               const today = todayStr();
@@ -858,6 +917,7 @@ export const useStore = create<State>()(
         affinity: s.affinity,
         mood: s.mood,
         provider: s.provider,
+        ttsSettings: s.ttsSettings,
         lastCheckIn: s.lastCheckIn,
         lastGiftDate: s.lastGiftDate,
         giftsToday: s.giftsToday,
@@ -894,3 +954,8 @@ export const useStore = create<State>()(
     },
   ),
 );
+
+// Sync player speaking state with store
+ttsPlayer.subscribe((speakingId) => {
+  useStore.setState({ currentlySpeakingId: speakingId });
+});

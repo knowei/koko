@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { useStore } from "@/store/companionStore";
+import { EXPRESSION_MAP } from "@/lib/messageParser";
 
 type Expression = "base" | "relieved" | "worried" | "sleepy";
 
-function expressionFor(mood: number, hour: number): Expression {
-  if (hour >= 23 || hour < 6) return "sleepy";
-  if (mood < 35) return "worried";
-  if (mood >= 72) return "relieved";
+function expressionFor(mood: number, hour: number, expr = "normal"): Expression {
+  if (expr === "sleepy" || hour >= 23 || hour < 6) return "sleepy";
+  if (expr === "pout" || expr === "shy" || mood < 35) return "worried";
+  if (expr === "smile" || expr === "blush" || mood >= 72) return "relieved";
   return "base";
 }
 
@@ -23,6 +24,7 @@ export function CharacterStage() {
   const previewSkin = useStore((state) => state.previewSkin);
   const setPreviewSkin = useStore((state) => state.setPreviewSkin);
   const profile = useStore((state) => state.profile);
+  const currentExpression = useStore((state) => state.currentExpression);
   const [hour, setHour] = useState(() => new Date().getHours());
   const [reaction, setReaction] = useState<Expression | null>(null);
   const [hearts, setHearts] = useState<Array<{ id: number; x: number; y: number; text: string }>>([]);
@@ -36,7 +38,7 @@ export function CharacterStage() {
     };
   }, []);
 
-  const expression = reaction ?? expressionFor(mood, hour);
+  const expression = reaction ?? expressionFor(mood, hour, currentExpression);
   const currentSkin = previewSkin ?? activeSkin;
   const skinSuffix = currentSkin === "green" ? "-green" : "";
 
@@ -122,6 +124,13 @@ export function CharacterStage() {
             {h.text}
           </span>
         ))}
+
+        {currentExpression !== "normal" && (
+          <div className="stage-expression-float" key={currentExpression}>
+            <span className="stage-expr-emoji">{EXPRESSION_MAP[currentExpression].emoji}</span>
+            <span className="stage-expr-label">{EXPRESSION_MAP[currentExpression].label}</span>
+          </div>
+        )}
       </div>
       <div className="character-caption">
         <span className="presence-dot" />

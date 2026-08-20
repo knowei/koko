@@ -7,6 +7,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { buildSystemPrompt, DEFAULT_PERSONALITY, DEFAULT_PROFILE, RANDOM_EVENTS, type CompanionMemory, type CompanionProfile, type PersonalityTraits, type ReplyStyle, type WeatherInfo } from "../src/data/persona.js";
 import { createToken, db, hashPassword, initPlatform, requireAuth, SERVER_PRODUCTS, transaction, type AuthRequest, verifyPassword } from "./platform.js";
+import { synthesizeCustomTTS, synthesizeEdgeTTS } from "./tts.js";
 
 dotenv.config();
 
@@ -567,6 +568,39 @@ app.post("/api/diary-analysis", async (req, res) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "生成日记时发生未知错误。";
     console.error("[ai-companion] 生成日记失败：", message);
+    res.status(502).json({ error: message });
+  }
+});
+
+app.post("/api/tts", async (req, res) => {
+  const { text, voice, rate, pitch, engine, customConfig } = req.body || {};
+  const speechText = String(text || "").trim().slice(0, 1000);
+  if (!speechText) {
+    res.status(400).json({ error: "朗读文本不能为空。" });
+    return;
+  }
+  const speechRate = Math.max(0.5, Math.min(2.0, Number(rate) || 1.0));
+  const speechPitch = Math.max(0.5, Math.min(1.5, Number(pitch) || 1.0));
+
+  try {
+    let audioBuffer: Buffer;
+    if (engine === "custom" && customConfig?.baseURL) {
+      audioBuffer = await synthesizeCustomTTS(speechText, customConfig, speechRate);
+    } else {
+      audioBuffer = await synthesizeEdgeTTS(
+        speechText,
+        typeof voice === "string" && voice ? voice : "zh-CN-XiaoyiNeural",
+        speechRate,
+        speechPitch,
+      );
+    }
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Content-Length", audioBuffer.length);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.end(audioBuffer);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "语音合成失败。";
+    console.error("[ai-companion] TTS 失败：", message);
     res.status(502).json({ error: message });
   }
 });

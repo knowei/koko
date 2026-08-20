@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/store/companionStore";
+import { generateSuggestions } from "@/lib/suggestions";
+import { MessageSegmentView } from "@/components/MessageSegmentView";
 
 export function ChatScreen() {
   const messages = useStore((s) => s.messages);
@@ -8,9 +10,18 @@ export function ChatScreen() {
   const send = useStore((s) => s.send);
   const quickAction = useStore((s) => s.quickAction);
   const clearError = useStore((s) => s.clearError);
-  const [draft, setDraft] = useState("");
   const profile = useStore((s) => s.profile);
+  const mood = useStore((s) => s.mood);
+  const affinity = useStore((s) => s.affinity);
+  const [draft, setDraft] = useState("");
+  const [showActions, setShowActions] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+
+  const ttsSettings = useStore((s) => s.ttsSettings);
+  const setTtsSettings = useStore((s) => s.setTtsSettings);
+  const currentlySpeakingId = useStore((s) => s.currentlySpeakingId);
+  const playMessageAudio = useStore((s) => s.playMessageAudio);
+  const stopAudio = useStore((s) => s.stopAudio);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -19,8 +30,12 @@ export function ChatScreen() {
   const submit = () => {
     const text = draft;
     setDraft("");
+    setShowActions(false);
     void send(text);
   };
+
+  const lastAssistantMsg = [...messages].reverse().find((m) => m.role === "assistant" && m.content.trim())?.content || "";
+  const suggestions = generateSuggestions(lastAssistantMsg, profile, mood, affinity);
 
   return (
     <section className="chat">
@@ -42,7 +57,49 @@ export function ChatScreen() {
           ) : (
             <div key={m.id} className={`row ${m.role}`}>
               <div className={`bubble ${m.role}`}>
-                {m.content || (streaming ? <span className="typing">{profile.name}正在打字…</span> : "")}
+                <div className="bubble-content">
+                  {m.content ? (
+                    <MessageSegmentView
+                      content={m.content}
+                      role={m.role}
+                      companionName={profile.name}
+                    />
+                  ) : streaming ? (
+                    <span className="typing">{profile.name}正在思考并打字…</span>
+                  ) : (
+                    ""
+                  )}
+                </div>
+                {m.role === "assistant" && m.content && !streaming && (
+                  <div className="bubble-footer">
+                    <button
+                      type="button"
+                      className={`tts-msg-btn ${currentlySpeakingId === m.id ? "playing" : ""}`}
+                      onClick={() => {
+                        if (currentlySpeakingId === m.id) {
+                          stopAudio();
+                        } else {
+                          void playMessageAudio(m.id);
+                        }
+                      }}
+                      title={currentlySpeakingId === m.id ? "停止播放" : "语音朗读"}
+                    >
+                      {currentlySpeakingId === m.id ? (
+                        <>
+                          <span className="sound-wave">
+                            <span /><span /><span />
+                          </span>
+                          <span>停止</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🔊</span>
+                          <span>朗读</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )
@@ -56,35 +113,71 @@ export function ChatScreen() {
         </div>
       )}
 
-      {/* Quick Interactive Actions */}
-      <div className="chat-quick-actions" aria-label="快捷互动">
-        <button disabled={streaming} onClick={() => void quickAction("pat")} title="摸摸可可的头">
-          🌸 摸摸头
-        </button>
-        <button disabled={streaming} onClick={() => void quickAction("water")} title="给可可递一杯温水">
-          🥛 递温水
-        </button>
-        <button disabled={streaming} onClick={() => void quickAction("praise")} title="夸夸可可">
-          ✨ 夸夸她
-        </button>
-        <button disabled={streaming} onClick={() => void quickAction("miss")} title="轻轻抱抱可可">
-          💖 轻轻抱抱
-        </button>
-      </div>
+      {/* Dynamic single-row compact suggestions */}
+      {!draft.trim() && !streaming && suggestions.length > 0 && (
+        <div className="dynamic-suggestions-bar" aria-label="推荐回复">
+          <span className="suggestion-icon" title="根据刚才的回复智能推荐">💡</span>
+          {suggestions.map((text, idx) => (
+            <button
+              key={idx}
+              className="suggestion-pill"
+              type="button"
+              onClick={() => void send(text)}
+              title={`点击发送：“${text}”`}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="composer">
+        <div className="action-popover-wrapper">
+          <button
+            type="button"
+            className={`action-popover-btn ${showActions ? "active" : ""}`}
+            onClick={() => setShowActions(!showActions)}
+            title={`和${profile.name}的互动动作`}
+          >
+            💖
+          </button>
+          {showActions && (
+            <div className="action-popover-menu">
+              <button disabled={streaming} onClick={() => { setShowActions(false); void quickAction("pat"); }}>
+                🌸 摸摸头
+              </button>
+              <button disabled={streaming} onClick={() => { setShowActions(false); void quickAction("water"); }}>
+                🥛 递温水
+              </button>
+              <button disabled={streaming} onClick={() => { setShowActions(false); void quickAction("praise"); }}>
+                ✨ 夸夸她
+              </button>
+              <button disabled={streaming} onClick={() => { setShowActions(false); void quickAction("miss"); }}>
+                💖 抱抱她
+              </button>
+            </div>
+          )}
+        </div>
+
         <textarea
           value={draft}
-          placeholder={`跟${profile.name}说点什么…（Enter 发送 / Shift+Enter 换行）`}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
+          placeholder={`跟${profile.name}说点什么…`}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            if (showActions) setShowActions(false);
           }}
-          rows={2}
+          rows={1}
         />
+
+        <button
+          type="button"
+          className={`quick-tts-icon-btn ${ttsSettings.autoPlay ? "active" : ""}`}
+          onClick={() => setTtsSettings({ autoPlay: !ttsSettings.autoPlay })}
+          title={ttsSettings.autoPlay ? "自动语音播报：已开启（点击关闭）" : "自动语音播报：已关闭（点击开启）"}
+        >
+          {ttsSettings.autoPlay ? "🔊" : "🔇"}
+        </button>
+
         <button className="send-btn" disabled={streaming || !draft.trim()} onClick={submit}>
           {streaming ? "…" : "发送"}
         </button>
@@ -92,3 +185,5 @@ export function ChatScreen() {
     </section>
   );
 }
+
+
