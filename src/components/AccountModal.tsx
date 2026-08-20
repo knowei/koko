@@ -188,8 +188,8 @@ export function AccountModal({ onClose }: AccountModalProps) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-box account-modal-box" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-mask account-mask" onClick={onClose}>
+      <div className="modal account-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="account-modal-header">
           <div className="account-header-left">
@@ -201,7 +201,7 @@ export function AccountModal({ onClose }: AccountModalProps) {
               </div>
             </div>
           </div>
-          <button className="modal-close-btn" onClick={onClose} aria-label="关闭">
+          <button className="account-close-btn" onClick={onClose} aria-label="关闭">
             ✕
           </button>
         </div>
