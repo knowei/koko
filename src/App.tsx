@@ -10,6 +10,7 @@ import { CharacterStage } from "@/components/CharacterStage";
 import { RandomEventModal } from "@/components/RandomEventModal";
 import { ShopScreen } from "@/components/ShopScreen";
 import { MemoryScreen } from "@/components/MemoryScreen";
+import { AccountModal } from "@/components/AccountModal";
 
 export default function App() {
   const affinity = useStore((s) => s.affinity);
@@ -24,6 +25,7 @@ export default function App() {
   const setWeather = useStore((s) => s.setWeather);
   const syncWallet = useStore((s) => s.syncWallet);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
   const [activeView, setActiveView] = useState<"chat" | "life" | "shop" | "memories">("chat");
   const [now, setNow] = useState(() => new Date());
   const greetOnReturn = useStore((s) => s.greetOnReturn);
@@ -121,7 +123,7 @@ export default function App() {
             <button className="ghost-btn desktop-shop-btn" onClick={() => setActiveView(activeView === "shop" ? "chat" : "shop")}>
               {activeView === "shop" ? "← 返回" : "✦ 商城"}
             </button>
-            <button className="ghost-btn account-top-btn" title="账号与云同步" onClick={() => setShowSettings(true)}>
+            <button className="ghost-btn account-top-btn" title="账号与云同步" onClick={() => setShowAccount(true)}>
               👤 {localStorage.getItem("koko-account-token") ? "已登录" : "登录"}
             </button>
             <button className="ghost-btn" title="设置供应商" onClick={() => setShowSettings(true)}>
@@ -160,7 +162,8 @@ export default function App() {
         </nav>
       </div>
 
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} onOpenAccount={() => setShowAccount(true)} />}
+      {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
       <RandomEventModal />
     </div>
   );

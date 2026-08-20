@@ -4,7 +4,7 @@ import type { ProviderCfg } from "@/lib/chat";
 import type { ReplyStyle } from "@/data/persona";
 import { EMOTION_STYLES, PRESET_EDGE_VOICES, ttsPlayer, type TTSSettings } from "@/lib/tts";
 
-export function SettingsPanel({ onClose }: { onClose: () => void }) {
+export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void; onOpenAccount?: () => void }) {
   const provider = useStore((s) => s.provider);
   const setProvider = useStore((s) => s.setProvider);
   const replyStyle = useStore((s) => s.replyStyle);
@@ -36,13 +36,8 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [weatherErr, setWeatherErr] = useState<string | null>(null);
   const exportSave = useStore((s) => s.exportSave);
   const importSave = useStore((s) => s.importSave);
-  const syncWallet = useStore((s) => s.syncWallet);
-  const clearWallet = useStore((s) => s.clearWallet);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
-  const [accountEmail, setAccountEmail] = useState("");
-  const [accountPassword, setAccountPassword] = useState("");
-  const [accountToken, setAccountToken] = useState(() => localStorage.getItem("koko-account-token") || "");
-  const [accountNotice, setAccountNotice] = useState<string | null>(null);
+  const accountToken = localStorage.getItem("koko-account-token") || "";
 
   // TTS Settings
   const [ttsEnabled, setTtsEnabled] = useState(ttsSettings.enabled);
@@ -58,39 +53,6 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [customTtsModel, setCustomTtsModel] = useState(ttsSettings.customModel ?? "tts-1");
   const [customTtsVoice, setCustomTtsVoice] = useState(ttsSettings.customVoice ?? "alloy");
   const [ttsTesting, setTtsTesting] = useState(false);
-
-  const accountRequest = async (path: string, init: RequestInit = {}) => {
-    const response = await fetch(path, {
-      ...init,
-      headers: { "Content-Type": "application/json", ...(accountToken ? { Authorization: `Bearer ${accountToken}` } : {}), ...init.headers },
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
-    return data;
-  };
-
-  const authenticate = async (kind: "login" | "register") => {
-    setAccountNotice(null);
-    try {
-      const data = await accountRequest(`/api/auth/${kind}`, { method: "POST", body: JSON.stringify({ email: accountEmail, password: accountPassword }) });
-      localStorage.setItem("koko-account-token", data.token);
-      setAccountToken(data.token);
-      await syncWallet();
-      setAccountPassword("");
-      setAccountNotice(kind === "register" ? "注册成功，已获得初始 50 心愿星。" : "登录成功。");
-    } catch (error) { setAccountNotice(error instanceof Error ? error.message : String(error)); }
-  };
-
-  const uploadCloud = async () => {
-    try { await accountRequest("/api/cloud-save", { method: "PUT", body: JSON.stringify({ payload: exportSave() }) }); setAccountNotice("云存档已更新。"); }
-    catch (error) { setAccountNotice(error instanceof Error ? error.message : String(error)); }
-  };
-
-  const downloadCloud = async () => {
-    if (!confirm("下载云存档会覆盖当前本地进度，但保留 API 设置。确定继续吗？")) return;
-    try { const data = await accountRequest("/api/cloud-save"); setAccountNotice(importSave(data.payload) || "云存档已恢复。"); }
-    catch (error) { setAccountNotice(error instanceof Error ? error.message : String(error)); }
-  };
 
   const downloadSave = () => {
     const blob = new Blob([JSON.stringify(exportSave(), null, 2)], { type: "application/json" });
@@ -385,25 +347,33 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         </label>
 
         <div className="settings-section-title provider-title">账号与云同步</div>
-        {accountToken ? (
-          <div className="account-box">
-            <div className="account-status"><span className="presence-dot" />已登录 · 本地聊天可继续使用</div>
-            <div className="fld-note">云端不会保存你的模型 API Key。</div>
-            <div className="save-actions">
-              <button className="mini-btn" onClick={uploadCloud}>上传当前存档</button>
-              <button className="mini-btn" onClick={downloadCloud}>恢复云存档</button>
-              <button className="mini-btn danger-mini" onClick={() => { localStorage.removeItem("koko-account-token"); setAccountToken(""); clearWallet(); setAccountNotice("已退出登录，本地聊天仍然保留。"); }}>退出登录</button>
+        <div className="account-box-preview">
+          <div className="account-preview-info">
+            <span className="account-preview-icon">👤</span>
+            <div>
+              <div className="account-preview-status">
+                {accountToken ? "✅ 账号已登录 · 专属云空间已开启" : "未登录账号（仅本地单机模式）"}
+              </div>
+              <div className="fld-note">
+                {accountToken
+                  ? "对话记忆与好感度可随时云端备份，云端不保存模型 API Key。"
+                  : "登录后可开启云存档备份、跨设备记忆同步并领取 50 心愿星。"}
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="account-box">
-            <div className="fld-note">不登录也能聊天；登录用于云存档、跨设备恢复和服务端资产。</div>
-            <label className="fld"><span>邮箱</span><input type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} placeholder="name@example.com" /></label>
-            <label className="fld"><span>密码（至少 8 位）</span><input type="password" value={accountPassword} onChange={(e) => setAccountPassword(e.target.value)} /></label>
-            <div className="save-actions"><button className="mini-btn" onClick={() => void authenticate("login")}>登录</button><button className="mini-btn" onClick={() => void authenticate("register")}>注册账号</button></div>
-          </div>
-        )}
-        {accountNotice && <div className={`fld-note account-notice ${/失败|错误|不正确|未配置/.test(accountNotice) ? "err" : ""}`}>{accountNotice}</div>}
+          <button
+            type="button"
+            className="open-account-hub-btn"
+            onClick={() => {
+              if (onOpenAccount) {
+                onClose();
+                onOpenAccount();
+              }
+            }}
+          >
+            {accountToken ? "⚙️ 打开账号与云存档管理" : "✨ 登录 / 注册 / 找回密码"}
+          </button>
+        </div>
 
         <div className="settings-section-title provider-title">本地存档</div>
         <div className="save-actions">

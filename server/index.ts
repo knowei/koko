@@ -281,6 +281,27 @@ app.post("/api/auth/login", async (req, res) => {
   res.json({ token: createToken(user.id), user: { id: user.id, email: user.email } });
 });
 
+app.post("/api/auth/reset-password", async (req, res) => {
+  if (!db) { res.status(503).json({ error: "服务器尚未配置数据库。" }); return; }
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  const newPassword = String(req.body?.newPassword || "");
+  if (!/^\S+@\S+\.\S+$/.test(email) || newPassword.length < 8) {
+    res.status(400).json({ error: "请输入有效注册邮箱，新密码至少 8 位。" }); return;
+  }
+  try {
+    const result = await db.query("SELECT id FROM users WHERE email=$1", [email]);
+    if (!result.rows[0]) {
+      res.status(404).json({ error: "该邮箱尚未注册账号。" }); return;
+    }
+    const userId = result.rows[0].id as string;
+    const passwordHash = await hashPassword(newPassword);
+    await db.query("UPDATE users SET password_hash=$1 WHERE id=$2", [passwordHash, userId]);
+    res.json({ ok: true, message: "密码重置成功，请使用新密码登录。" });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "重置密码失败。" });
+  }
+});
+
 app.get("/api/account", requireAuth, async (req: AuthRequest, res) => {
   const userId = req.userId!;
   const [user, wallet, assets, inventory, activity, pendingEvent] = await Promise.all([
