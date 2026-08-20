@@ -20,10 +20,12 @@ const expressionNames: Record<Expression, string> = {
 export function CharacterStage() {
   const mood = useStore((state) => state.mood);
   const activeSkin = useStore((state) => state.activeSkin);
+  const previewSkin = useStore((state) => state.previewSkin);
+  const setPreviewSkin = useStore((state) => state.setPreviewSkin);
   const profile = useStore((state) => state.profile);
   const [hour, setHour] = useState(() => new Date().getHours());
   const [reaction, setReaction] = useState<Expression | null>(null);
-  const [heart, setHeart] = useState(0);
+  const [hearts, setHearts] = useState<Array<{ id: number; x: number; y: number; text: string }>>([]);
   const reactionTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -35,7 +37,8 @@ export function CharacterStage() {
   }, []);
 
   const expression = reaction ?? expressionFor(mood, hour);
-  const skinSuffix = activeSkin === "green" ? "-green" : "";
+  const currentSkin = previewSkin ?? activeSkin;
+  const skinSuffix = currentSkin === "green" ? "-green" : "";
 
   const move = (event: PointerEvent<HTMLElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -50,33 +53,75 @@ export function CharacterStage() {
     event.currentTarget.style.setProperty("--look-y", "0");
   };
 
-  const react = () => {
-    setReaction("relieved");
-    setHeart((value) => value + 1);
+  const handleTouch = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const relY = (event.clientY - rect.top) / rect.height;
+    const relX = event.clientX - rect.left;
+
+    // Upper 40%: Pat head (安心/害羞); Lower: Gentle poke
+    const nextExpr: Expression = relY < 0.45 ? "relieved" : mood < 40 ? "worried" : "relieved";
+    setReaction(nextExpr);
+
+    const heartEmojis = ["♥", "✨", "🌸", "💖"];
+    const randomEmoji = heartEmojis[Math.floor(Math.random() * heartEmojis.length)];
+    const newHeart = {
+      id: Date.now() + Math.random(),
+      x: Math.max(20, Math.min(rect.width - 20, relX)),
+      y: Math.max(20, event.clientY - rect.top),
+      text: randomEmoji,
+    };
+
+    setHearts((prev) => [...prev.slice(-4), newHeart]);
+
     if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
-    reactionTimer.current = window.setTimeout(() => setReaction(null), 1800);
+    reactionTimer.current = window.setTimeout(() => {
+      setReaction(null);
+      setHearts([]);
+    }, 2000);
   };
 
   return (
     <section
-      className="character-stage"
+      className={`character-stage ${previewSkin ? "in-preview" : ""}`}
       aria-label={`${profile.name}的角色立绘`}
       data-character-mode="animated-sprite-fallback"
       style={{ "--look-x": 0, "--look-y": 0 } as CSSProperties}
       onPointerMove={move}
       onPointerLeave={resetLook}
     >
+      {previewSkin && (
+        <div className="preview-skin-badge">
+          <span>👗 试穿预览中 · {previewSkin === "green" ? "薄荷绿裙" : "浅蓝长裙"}</span>
+          <button onClick={() => setPreviewSkin(null)}>退出试穿</button>
+        </div>
+      )}
+
       <div className="character-scene">
         <div className="character-depth" aria-hidden="true" />
-        <button className="character-touch" type="button" onClick={react} aria-label="和可可互动">
+        <button
+          className="character-touch"
+          type="button"
+          onClick={handleTouch}
+          aria-label={`和${profile.name}互动`}
+        >
           <img
-            key={expression}
-            className="character-sprite"
+            key={`${expression}-${currentSkin}`}
+            className="character-sprite character-breathing"
             src={`/assets/character/koko-${expression}${skinSuffix}.png`}
             alt={`长银发、神情${expressionNames[expression]}的${profile.name}`}
           />
         </button>
-        <span key={heart} className={`touch-heart ${heart ? "show" : ""}`} aria-hidden="true">♥</span>
+
+        {hearts.map((h) => (
+          <span
+            key={h.id}
+            className="touch-heart-particle"
+            style={{ left: `${h.x}px`, top: `${h.y}px` }}
+            aria-hidden="true"
+          >
+            {h.text}
+          </span>
+        ))}
       </div>
       <div className="character-caption">
         <span className="presence-dot" />

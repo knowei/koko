@@ -130,6 +130,7 @@ interface State {
   inventory: Record<string, number>;
   unlockedSkins: string[];
   activeSkin: string;
+  previewSkin: string | null;
   pendingEvent: RandomEvent | null;
   pendingEventInstanceId: string | null;
   eventDate: string | null;
@@ -160,6 +161,8 @@ interface State {
   setProfile: (profile: CompanionProfile) => void;
   setWeather: (weather: WeatherInfo | null) => void;
   setAdultMode: (enabled: boolean) => void;
+  setPreviewSkin: (skin: string | null) => void;
+  quickAction: (actionType: "pat" | "water" | "praise" | "miss") => Promise<void>;
   addMemory: (text: string, kind?: MemoryKind) => void;
   removeMemory: (id: string) => void;
   removeDiary: (date: string) => void;
@@ -220,6 +223,7 @@ export const useStore = create<State>()(
       inventory: {},
       unlockedSkins: ["blue"],
       activeSkin: "blue",
+      previewSkin: null,
       pendingEvent: null,
       pendingEventInstanceId: null,
       eventDate: null,
@@ -248,6 +252,47 @@ export const useStore = create<State>()(
       setProvider: (cfg) => set({ provider: cfg }),
       setReplyStyle: (replyStyle) => set({ replyStyle }),
       setProfile: (profile) => set({ profile: { ...profile, age: Math.max(18, Math.min(99, profile.age)) } }),
+      setPreviewSkin: (previewSkin) => set({ previewSkin }),
+      quickAction: async (actionType) => {
+        if (get().streaming) return;
+        const profile = get().profile;
+        const actions: Record<string, { label: string; hidden: string; affinity: number; mood: number; trait: Partial<PersonalityTraits> }> = {
+          pat: {
+            label: `（轻轻摸了摸${profile.name}的头）`,
+            hidden: `用户伸手温柔地揉了揉你的头发。请根据你现在的性格和心情，做出软萌害羞或开心的真实反应。`,
+            affinity: 2, mood: 5, trait: { gentle: 2, clingy: 1 }
+          },
+          water: {
+            label: `（递给${profile.name}一杯温热的水）`,
+            hidden: `用户贴心地递给你一杯温水。请开心地接过并向对方表达感谢。`,
+            affinity: 1, mood: 4, trait: { gentle: 2 }
+          },
+          praise: {
+            label: `（笑着夸奖）“${profile.name}今天也超级可爱呢。”`,
+            hidden: `用户认真地夸奖你今天超级可爱。请根据你现在的性格做出害羞、傲娇或开心黏人的反应。`,
+            affinity: 3, mood: 8, trait: { clingy: 2, tsundere: 1 }
+          },
+          miss: {
+            label: `（伸手轻轻抱了抱${profile.name}）`,
+            hidden: `用户伸手轻轻抱住了你，告诉你他很在乎你。请给出最温暖、贴心且有依恋感的回应。`,
+            affinity: 4, mood: 9, trait: { clingy: 3, possessive: 1 }
+          },
+        };
+        const act = actions[actionType];
+        if (!act) return;
+        set((s) => ({
+          lastActiveAt: Date.now(),
+          mood: clamp(s.mood + act.mood),
+          affinity: clamp(s.affinity + act.affinity),
+          personality: addTraits(s.personality, act.trait),
+          messages: [
+            ...s.messages,
+            { id: uid(), role: "user", content: act.label, hiddenPrompt: act.hidden, ts: Date.now(), kind: "chat" },
+          ],
+        }));
+        await get()._runTurn();
+        get().maybeTriggerEvent("chat");
+      },
       setWeather: (weather) => set({ weather }),
       setAdultMode: (adultMode) => set({ adultMode }),
       syncWallet: async () => {

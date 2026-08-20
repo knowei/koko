@@ -6,6 +6,7 @@ export function ChatScreen() {
   const streaming = useStore((s) => s.streaming);
   const error = useStore((s) => s.error);
   const send = useStore((s) => s.send);
+  const quickAction = useStore((s) => s.quickAction);
   const clearError = useStore((s) => s.clearError);
   const [draft, setDraft] = useState("");
   const profile = useStore((s) => s.profile);
@@ -54,6 +55,22 @@ export function ChatScreen() {
           ⚠ {error}（点此关闭）
         </div>
       )}
+
+      {/* Quick Interactive Actions */}
+      <div className="chat-quick-actions" aria-label="快捷互动">
+        <button disabled={streaming} onClick={() => void quickAction("pat")} title="摸摸可可的头">
+          🌸 摸摸头
+        </button>
+        <button disabled={streaming} onClick={() => void quickAction("water")} title="给可可递一杯温水">
+          🥛 递温水
+        </button>
+        <button disabled={streaming} onClick={() => void quickAction("praise")} title="夸夸可可">
+          ✨ 夸夸她
+        </button>
+        <button disabled={streaming} onClick={() => void quickAction("miss")} title="轻轻抱抱可可">
+          💖 轻轻抱抱
+        </button>
+      </div>
 
       <div className="composer">
         <textarea

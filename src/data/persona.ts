@@ -81,9 +81,13 @@ export interface Outing {
 
 export const OUTINGS: Outing[] = [
   { id: "store", name: "便利店", emoji: "🏪", minAffinity: 0, affinity: 2, mood: 5, prompt: "一起去便利店买夜宵，结合当前性格说一件途中发生的小事" },
-  { id: "park", name: "公园", emoji: "🌳", minAffinity: 15, affinity: 4, mood: 7, prompt: "一起去公园散步，结合时间和最近聊天自然聊起一个话题" },
+  { id: "bookstore", name: "静谧书屋", emoji: "📚", minAffinity: 10, affinity: 3, mood: 6, prompt: "一起在安静的书店翻书，一人一只耳机听同一首歌" },
+  { id: "park", name: "公园散步", emoji: "🌳", minAffinity: 15, affinity: 4, mood: 7, prompt: "一起去公园散步，结合时间和最近聊天自然聊起一个话题" },
+  { id: "night_market", name: "夏夜市集", emoji: "🏮", minAffinity: 20, affinity: 5, mood: 8, prompt: "一起逛热闹的夏夜小吃街与市集，吃热乎乎的小吃和捞金鱼" },
   { id: "cinema", name: "电影院", emoji: "🎬", minAffinity: 30, affinity: 6, mood: 8, prompt: "一起看完一部电影，分享感受并制造一个有兄妹默契的小瞬间" },
+  { id: "aquarium", name: "水族馆", emoji: "🐬", minAffinity: 40, affinity: 8, mood: 11, prompt: "一起在水族馆看泛着蓝光的水母和海豚表演，分享浪漫又安心的时刻" },
   { id: "park_ride", name: "游乐园", emoji: "🎡", minAffinity: 50, affinity: 9, mood: 12, prompt: "一起在游乐园玩了一天，用短对话讲一个最难忘的小插曲" },
+  { id: "seaside", name: "海边吹风", emoji: "🌊", minAffinity: 60, affinity: 11, mood: 15, prompt: "一起在傍晚的海边漫步吹风看夕阳，踩着浪花聊天，享受属于两个人的温柔时光" },
 ];
 
 export interface ShopProduct {
@@ -102,7 +106,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
   { id: "gift_book", type: "gift", name: "绘本", emoji: "📖", price: 35, refId: "book" },
   { id: "gift_cat", type: "gift", name: "毛绒猫", emoji: "🐱", price: 60, refId: "cat" },
   { id: "gift_cake", type: "gift", name: "草莓蛋糕", emoji: "🍰", price: 45, refId: "cake" },
-  { id: "skin_green", type: "skin", name: "薄荷绿裙", emoji: "👗", price: 300, refId: "green", available: false },
+  { id: "skin_green", type: "skin", name: "薄荷绿裙", emoji: "👗", price: 300, refId: "green", available: true },
 ];
 
 export interface RandomEventChoice {
@@ -149,7 +153,31 @@ export const RANDOM_EVENTS: RandomEvent[] = [
     ]
   },
   {
-    id: "old_photo", title: "翻到旧照片", emoji: "📷", description: "可可从抽屉里翻出一张你们小时候的合照。", minAffinity: 30, choices: [
+    id: "amusement_lost", title: "游乐园走散", emoji: "🎡", description: "人潮拥挤的游乐园里，转个身可可就不见了，你急忙四处寻找。", minAffinity: 25, choices: [
+      { id: "cotton", label: "在棉花糖摊前找到她", affinity: 4, mood: 6, personality: { clingy: 3 }, result: "看见你的那一刻可可眼圈红了，小跑过来紧紧抓住了你的手不肯松开。" },
+      { id: "comfort", label: "买个兔耳发箍安慰她", affinity: 3, mood: 7, personality: { gentle: 2 }, result: "可可戴上发箍吸了吸鼻子破涕为笑：“罚你今天一直牵着我！”" },
+    ]
+  },
+  {
+    id: "movie_quarrel", title: "电影院小别扭", emoji: "🍿", description: "选了一部悬疑惊悚片，可可嘴硬说自己一点都不怕。", minAffinity: 30, choices: [
+      { id: "hold_hand", label: "在吓人瞬间悄悄牵手", affinity: 5, mood: 6, personality: { clingy: 2 }, result: "突发音效响起的瞬间，可可的手猛地握紧你，之后再也没放开。" },
+      { id: "popcorn", label: "把爆米花全递给她", affinity: 3, mood: 5, personality: { tsundere: 2 }, result: "可可一边大嚼爆米花压惊，一边小声嘟囔：“我真的只是在看剧情啦…”" },
+    ]
+  },
+  {
+    id: "catch_cold", title: "忽然有点感冒", emoji: "💊", description: "午后可可裹着毛毯蜷在沙发上，声音带着点鼻音。", minAffinity: 20, choices: [
+      { id: "ginger_tea", label: "煮一杯红糖姜茶", affinity: 4, mood: 6, personality: { gentle: 3 }, result: "捧着热气腾腾的姜茶，可可小口喝着，眉眼弯弯地看着你忙前忙后。" },
+      { id: "tuck_in", label: "帮她掖好毛毯陪着她", affinity: 4, mood: 5, personality: { clingy: 2 }, result: "可可缩进毛毯里，小声说：“有你在身边，好像一下子就没那么难受了。”" },
+    ]
+  },
+  {
+    id: "cleaning_fun", title: "周末大扫除", emoji: "🧹", description: "收拾房间时，可可从书架顶层翻出了你藏的小玩偶与零食。", minAffinity: 15, choices: [
+      { id: "share_snack", label: "分她一半零食休战", affinity: 3, mood: 7, personality: { gentle: 2 }, result: "两人席地而坐瓜分零食，房间收拾到一半变成了茶话会。" },
+      { id: "tickle", label: "抢回玩偶闹作一团", affinity: 3, mood: 6, personality: { tsundere: 2 }, result: "房间里充满了笑声，可可气喘吁吁地举白旗投降。" },
+    ]
+  },
+  {
+    id: "old_photo", title: "翻到旧照片", emoji: "📷", description: "可可从抽屉里翻出一张你们小时候的合照。", minAffinity: 35, choices: [
       { id: "remember", label: "一起回忆那天", affinity: 4, mood: 5, personality: { gentle: 2 }, result: "模糊的照片勾起许多细节，可可连你当时说的话都记得。" },
       { id: "keep", label: "把照片收进相框", affinity: 5, mood: 6, personality: { possessive: 2 }, result: "可可认真擦干净相框，把它放在每天都能看见的位置。" },
     ]
@@ -159,6 +187,73 @@ export const RANDOM_EVENTS: RandomEvent[] = [
       { id: "talk", label: "陪她聊一会儿", affinity: 4, mood: 5, personality: { clingy: 3 }, result: "她说着说着放松下来，却还是舍不得马上离开。" },
       { id: "milk", label: "给她热杯牛奶", affinity: 3, mood: 6, personality: { gentle: 2 }, result: "杯子暖着手心，可可小声说今晚应该能睡个好觉。" },
     ]
+  },
+];
+
+export interface Polaroid {
+  id: string;
+  title: string;
+  image: string;
+  dateTag: string;
+  caption: string;
+  minAffinity: number;
+  condition: string;
+}
+
+export const POLAROIDS: Polaroid[] = [
+  {
+    id: "photo_morning",
+    title: "初醒与晨光",
+    image: "/assets/character/koko-sleepy.png",
+    dateTag: "初识时分",
+    caption: "“揉着眼睛从房间走出来，第一眼就看见了你。”",
+    minAffinity: 0,
+    condition: "相遇的初始纪念",
+  },
+  {
+    id: "photo_teatime",
+    title: "午后奶茶时光",
+    image: "/assets/character/koko-base.png",
+    dateTag: "便利店门前",
+    caption: "“吸管插进杯子里，甜甜的味道就像今天的好心情。”",
+    minAffinity: 15,
+    condition: "亲密度达到 15",
+  },
+  {
+    id: "photo_mint",
+    title: "换上新裙子的午后",
+    image: "/assets/character/koko-relieved-green.png",
+    dateTag: "试衣镜前",
+    caption: "“转了个圈问你好看吗……你的眼神已经告诉我啦。”",
+    minAffinity: 25,
+    condition: "拥有薄荷绿裙或亲密度达到 25",
+  },
+  {
+    id: "photo_cinema",
+    title: "散场后的长椅",
+    image: "/assets/character/koko-relieved.png",
+    dateTag: "影院回廊",
+    caption: "“电影散场了，但不想那么快回家，想和你多坐一会儿。”",
+    minAffinity: 40,
+    condition: "亲密度达到 40",
+  },
+  {
+    id: "photo_seaside",
+    title: "海风与晚霞",
+    image: "/assets/character/koko-relieved.png",
+    dateTag: "黄昏海岸",
+    caption: "“夕阳把海浪染成金粉色，你悄悄牵住了我的手。”",
+    minAffinity: 60,
+    condition: "亲密度达到 60",
+  },
+  {
+    id: "photo_firework",
+    title: "夏夜烟火约定",
+    image: "/assets/character/koko-relieved-green.png",
+    dateTag: "市集夜空下",
+    caption: "“烟火在头顶炸开的那一刻，我许了一个关于你的愿望。”",
+    minAffinity: 80,
+    condition: "亲密度达到 80",
   },
 ];
 
