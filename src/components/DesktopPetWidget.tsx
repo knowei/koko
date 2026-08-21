@@ -365,7 +365,7 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
         {/* Character Render (Live2D or 2D Avatar) */}
         {useLive2D ? (
           <Live2DViewer
-            modelPath="/live2d/shizuku/shizuku.model.json"
+            modelPath="./live2d/shizuku/shizuku.model.json"
             width={200}
             height={240}
             expression={currentExpr}

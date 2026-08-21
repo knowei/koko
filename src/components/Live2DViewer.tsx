@@ -78,7 +78,8 @@ export function Live2DViewer({
         containerRef.current.innerHTML = "";
         containerRef.current.appendChild(canvasEl);
 
-        const model = await PIXI.live2d.Live2DModel.from(modelPath, {
+        const resolvedPath = modelPath.startsWith("/") ? `.${modelPath}` : modelPath;
+        const model = await PIXI.live2d.Live2DModel.from(resolvedPath, {
           autoInteract: false,
         });
 

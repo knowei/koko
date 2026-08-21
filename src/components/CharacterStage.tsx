@@ -109,7 +109,7 @@ export function CharacterStage() {
           <img
             key={`${expression}-${currentSkin}`}
             className="character-sprite character-breathing"
-            src={`/assets/character/koko-${expression}${skinSuffix}.png`}
+            src={`./assets/character/koko-${expression}${skinSuffix}.png`}
             alt={`长银发、神情${expressionNames[expression]}的${profile.name}`}
           />
         </button>

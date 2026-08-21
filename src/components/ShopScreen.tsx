@@ -77,7 +77,7 @@ export function ShopScreen() {
           {/* Base skin: blue */}
           <article className={`skin-card ${activeSkin === "blue" ? "equipped" : ""} ${previewSkin === "blue" ? "previewing" : ""}`}>
             <div className="skin-preview">
-              <img src="/assets/character/koko-base.png" alt="可可的浅蓝长裙" />
+              <img src="./assets/character/koko-base.png" alt="可可的浅蓝长裙" />
             </div>
             <div className="skin-info">
               <strong>浅蓝长裙</strong>
@@ -104,7 +104,7 @@ export function ShopScreen() {
             return (
               <article key={product.id} className={`skin-card ${equipped ? "equipped" : ""} ${isPreviewing ? "previewing" : ""}`}>
                 <div className="skin-preview mint">
-                  <img src="/assets/character/koko-base-green.png" alt="可可的薄荷绿裙" />
+                  <img src="./assets/character/koko-base-green.png" alt="可可的薄荷绿裙" />
                 </div>
                 <div className="skin-info">
                   <strong>{product.name}</strong>
