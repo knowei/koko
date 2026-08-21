@@ -4,7 +4,11 @@ import { generateSuggestions } from "@/lib/suggestions";
 import { MessageSegmentView } from "@/components/MessageSegmentView";
 import { voiceRecognizer, isSTTSupported } from "@/lib/stt";
 
-export function ChatScreen() {
+interface ChatScreenProps {
+  onOpenGames?: () => void;
+}
+
+export function ChatScreen({ onOpenGames }: ChatScreenProps = {}) {
   const messages = useStore((s) => s.messages);
   const streaming = useStore((s) => s.streaming);
   const error = useStore((s) => s.error);
@@ -284,6 +288,17 @@ export function ChatScreen() {
               <button disabled={streaming} onClick={() => { setShowActions(false); void quickAction("miss"); }}>
                 💖 抱抱她
               </button>
+              {onOpenGames && (
+                <button
+                  disabled={streaming}
+                  onClick={() => {
+                    setShowActions(false);
+                    onOpenGames();
+                  }}
+                >
+                  🎮 一起下五子棋
+                </button>
+              )}
             </div>
           )}
         </div>

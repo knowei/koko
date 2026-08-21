@@ -10,6 +10,7 @@ import { CharacterStage } from "@/components/CharacterStage";
 import { RandomEventModal } from "@/components/RandomEventModal";
 import { ShopScreen } from "@/components/ShopScreen";
 import { MemoryScreen } from "@/components/MemoryScreen";
+import { GameZoneScreen } from "@/components/GameZoneScreen";
 import { AccountModal } from "@/components/AccountModal";
 import { DesktopPetWidget } from "@/components/DesktopPetWidget";
 
@@ -44,7 +45,7 @@ export default function App() {
   const [isMiniCompanion, setIsMiniCompanion] = useState(() => {
     return typeof window !== "undefined" && window.location.search.includes("mode=pet");
   });
-  const [activeView, setActiveView] = useState<"chat" | "life" | "shop" | "memories">("chat");
+  const [activeView, setActiveView] = useState<"chat" | "life" | "shop" | "memories" | "games">("chat");
   const [now, setNow] = useState(() => new Date());
   const greetOnReturn = useStore((s) => s.greetOnReturn);
   const proactivePing = useStore((s) => s.proactivePing);
@@ -187,6 +188,9 @@ export default function App() {
             >
               🌸 悬浮陪伴
             </button>
+            <button className="ghost-btn desktop-game-btn" onClick={() => setActiveView(activeView === "games" ? "chat" : "games")}>
+              {activeView === "games" ? "← 返回" : "🎮 娱乐"}
+            </button>
             <button className="ghost-btn desktop-memory-btn" onClick={() => setActiveView(activeView === "memories" ? "chat" : "memories")}>
               {activeView === "memories" ? "← 返回" : "📖 回忆"}
             </button>
@@ -235,11 +239,19 @@ export default function App() {
           <span className="affinity-num">❤ {affinity}</span>
         </div>
 
-        <main className={`stage mobile-${activeView} ${activeView === "shop" || activeView === "memories" ? "shop-view" : ""}`}>
-          {activeView === "shop" ? <ShopScreen /> : activeView === "memories" ? <MemoryScreen /> : <>
-            <div className="chat-pane"><ChatScreen /></div>
-            <div className="life-pane"><CharacterStage /><SidePanel /></div>
-          </>}
+        <main className={`stage mobile-${activeView} ${activeView === "shop" || activeView === "memories" || activeView === "games" ? "shop-view" : ""}`}>
+          {activeView === "shop" ? (
+            <ShopScreen />
+          ) : activeView === "memories" ? (
+            <MemoryScreen />
+          ) : activeView === "games" ? (
+            <GameZoneScreen onBack={() => setActiveView("life")} />
+          ) : (
+            <>
+              <div className="chat-pane"><ChatScreen onOpenGames={() => setActiveView("games")} /></div>
+              <div className="life-pane"><CharacterStage /><SidePanel onOpenGames={() => setActiveView("games")} /></div>
+            </>
+          )}
         </main>
 
         <nav className="mobile-nav" aria-label="手机端导航">

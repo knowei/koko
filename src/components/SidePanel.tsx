@@ -6,7 +6,7 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function SidePanel() {
+export function SidePanel({ onOpenGames }: { onOpenGames?: () => void }) {
   const affinity = useStore((s) => s.affinity);
   const lastCheckIn = useStore((s) => s.lastCheckIn);
   const dailyCheckIn = useStore((s) => s.dailyCheckIn);
@@ -48,6 +48,20 @@ export function SidePanel() {
       >
         {checkedInToday ? "今天已签到 ✓" : "📅 每日签到打招呼"}
       </button>
+
+      {onOpenGames && (
+        <div className="entertainment-banner-card" onClick={onOpenGames} role="button" tabIndex={0}>
+          <div className="banner-icon-badge">🎮</div>
+          <div className="banner-meta">
+            <div className="banner-title-row">
+              <strong>双人娱乐坊 · 对弈与小游戏</strong>
+              <span className="banner-new-tag">NEW ✨</span>
+            </div>
+            <small>和{profileName || "妹妹"}下五子棋、井字棋与默契测试</small>
+          </div>
+          <span className="banner-arrow">➔</span>
+        </div>
+      )}
 
       <div className="personality-card">
         <span>现在的{profileName || "妹妹"}</span>

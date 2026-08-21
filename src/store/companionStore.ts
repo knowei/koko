@@ -68,7 +68,7 @@ export interface Experience {
   id: string;
   title: string;
   detail: string;
-  kind: "agreement" | "outing" | "gift" | "event";
+  kind: "agreement" | "outing" | "gift" | "event" | "game";
   ts: number;
 }
 
@@ -201,6 +201,18 @@ interface State {
   equipSkin: (id: string) => string;
   maybeTriggerEvent: (source: "checkin" | "chat" | "outing") => Promise<void>;
   chooseEvent: (choiceId: string) => Promise<string | null>;
+  todayGamesCount: number;
+  lastGameDate: string | null;
+  finishGameMatch: (
+    gameType: "gomoku" | "tictactoe" | "mindmatch",
+    result: "win" | "lose" | "draw",
+    scoreDetail?: string
+  ) => Promise<{
+    affinityGain: number;
+    moodGain: number;
+    pointsGain: number;
+    notice: string;
+  }>;
   dismissEvent: () => void;
   tapTopic: (label: string) => void;
   resetMemory: () => void;
@@ -237,6 +249,8 @@ export const useStore = create<State>()(
       unlockedSkins: ["blue"],
       activeSkin: "blue",
       previewSkin: null,
+      todayGamesCount: 0,
+      lastGameDate: null,
       pendingEvent: null,
       pendingEventInstanceId: null,
       eventDate: null,
@@ -772,6 +786,94 @@ export const useStore = create<State>()(
       },
       dismissEvent: () => set({ pendingEvent: null, pendingEventInstanceId: null }),
 
+      finishGameMatch: async (gameType, result, scoreDetail) => {
+        const s = get();
+        const today = todayStr();
+        const gamesToday = s.lastGameDate === today ? (s.todayGamesCount || 0) : 0;
+        const companionName = s.profile.name || "妹妹";
+        const userNickname = s.profile.userNickname || "哥哥";
+
+        let affinityGain = 0;
+        let moodGain = 0;
+        let pointsGain = 0;
+        let gameTitle = "";
+
+        if (gameType === "gomoku") {
+          gameTitle = "五子棋对弈";
+          if (result === "win") { affinityGain = 5; moodGain = 8; pointsGain = 15; }
+          else if (result === "lose") { affinityGain = 3; moodGain = 9; pointsGain = 10; }
+          else { affinityGain = 4; moodGain = 6; pointsGain = 10; }
+        } else if (gameType === "tictactoe") {
+          gameTitle = "井字棋快打";
+          if (result === "win") { affinityGain = 2; moodGain = 4; pointsGain = 5; }
+          else if (result === "lose") { affinityGain = 1; moodGain = 5; pointsGain = 4; }
+          else { affinityGain = 2; moodGain = 3; pointsGain = 4; }
+        } else {
+          gameTitle = "心灵默契测试";
+          if (result === "win") { affinityGain = 6; moodGain = 8; pointsGain = 20; }
+          else if (result === "lose") { affinityGain = 2; moodGain = 4; pointsGain = 8; }
+          else { affinityGain = 4; moodGain = 6; pointsGain = 12; }
+        }
+
+        // Diminish rewards slightly after 5 games per day
+        if (gamesToday >= 5) {
+          affinityGain = Math.max(1, Math.floor(affinityGain * 0.4));
+          moodGain = Math.max(1, Math.floor(moodGain * 0.4));
+          pointsGain = Math.max(2, Math.floor(pointsGain * 0.3));
+        }
+
+        const resultText = result === "win" ? "你赢啦 ✨" : result === "lose" ? `${companionName}赢啦 🎉` : "势均力敌平局 🤝";
+        const experienceDetail = scoreDetail ? `${resultText} · ${scoreDetail}` : resultText;
+
+        let newPoints = s.points + pointsGain;
+        if (accountToken()) {
+          try {
+            const data = await accountRequest("/api/rewards/event", {
+              method: "POST",
+              body: JSON.stringify({ instanceId: `game-${Date.now()}`, eventId: `game_${gameType}`, choiceId: result })
+            });
+            if (data.points) newPoints = Number(data.points);
+          } catch {
+            // Local fallback
+          }
+        }
+
+        const nextAffinity = clamp(s.affinity + affinityGain);
+        const unlocked = MILESTONES.filter((item) => nextAffinity >= item.affinity && !s.unlockedMilestones.includes(item.id));
+
+        set((current) => ({
+          todayGamesCount: gamesToday + 1,
+          lastGameDate: today,
+          points: newPoints,
+          affinity: nextAffinity,
+          mood: clamp(current.mood + moodGain),
+          unlockedMilestones: [...current.unlockedMilestones, ...unlocked.map((item) => item.id)],
+          pointLedger: [...current.pointLedger, { id: uid(), amount: pointsGain, reason: `游戏：${gameTitle}`, ts: Date.now() }].slice(-100),
+          experiences: [...current.experiences, { id: uid(), title: gameTitle, detail: experienceDetail, kind: "game" as const, ts: Date.now() }].slice(-100),
+          messages: [
+            ...current.messages,
+            {
+              id: uid(),
+              role: "user",
+              ts: Date.now(),
+              kind: "event",
+              content: `🎮 ${gameTitle} · ${resultText} · 亲密度 +${affinityGain} · 心情 +${moodGain} · 获得 ${pointsGain} 心愿星`,
+              hiddenPrompt: `你和${userNickname}刚刚下完了一局${gameTitle}，结果是：${resultText}${scoreDetail ? `（${scoreDetail}）` : ""}。请以${companionName}的口吻自然回应这局对弈。`,
+            },
+            ...unlocked.map((item) => ({ id: uid(), role: "assistant" as const, content: item.text, ts: Date.now(), kind: "milestone" as const }))
+          ],
+        }));
+
+        void get()._runTurn();
+
+        return {
+          affinityGain,
+          moodGain,
+          pointsGain,
+          notice: `本局结算：亲密度 +${affinityGain} · 心情 +${moodGain} · 心愿星 +${pointsGain}`,
+        };
+      },
+
       resetMemory: () =>
         set({
           messages: [], affinity: 5, mood: 60, personality: DEFAULT_PERSONALITY,
@@ -949,6 +1051,8 @@ export const useStore = create<State>()(
         inventory: s.inventory,
         unlockedSkins: s.unlockedSkins,
         activeSkin: s.activeSkin,
+        todayGamesCount: s.todayGamesCount,
+        lastGameDate: s.lastGameDate,
         pendingEvent: s.pendingEvent,
         pendingEventInstanceId: s.pendingEventInstanceId,
         eventDate: s.eventDate,
