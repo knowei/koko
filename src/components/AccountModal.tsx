@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/store/companionStore";
 import { Avatar } from "@/components/Avatar";
+import { apiUrl } from "@/lib/api";
 
 interface AccountModalProps {
   onClose: () => void;
@@ -37,7 +38,7 @@ export function AccountModal({ onClose }: AccountModalProps) {
 
   const accountRequest = async (path: string, init: RequestInit = {}) => {
     const currentToken = localStorage.getItem("koko-account-token") || "";
-    const response = await fetch(path, {
+    const response = await fetch(apiUrl(path), {
       ...init,
       headers: {
         "Content-Type": "application/json",

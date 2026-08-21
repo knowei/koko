@@ -3,6 +3,7 @@ import { useStore } from "@/store/companionStore";
 import type { ProviderCfg } from "@/lib/chat";
 import type { ReplyStyle } from "@/data/persona";
 import { EMOTION_STYLES, PRESET_EDGE_VOICES, ttsPlayer, type TTSSettings } from "@/lib/tts";
+import { apiUrl, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
 
 export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void; onOpenAccount?: () => void }) {
   const provider = useStore((s) => s.provider);
@@ -40,6 +41,7 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
   const [weatherErr, setWeatherErr] = useState<string | null>(null);
   const exportSave = useStore((s) => s.exportSave);
   const importSave = useStore((s) => s.importSave);
+  const [serverUrl, setServerUrl] = useState(() => getApiBaseUrl());
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const accountToken = localStorage.getItem("koko-account-token") || "";
 
@@ -85,7 +87,7 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
     setWeatherLoading(true);
     setWeatherErr(null);
     try {
-      const r = await fetch(`/api/weather?city=${encodeURIComponent(value)}`);
+      const r = await fetch(apiUrl(`/api/weather?city=${encodeURIComponent(value)}`));
       const j = await r.json();
       if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
       setWeatherPreview(j);
@@ -101,7 +103,7 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
     setWeatherLoading(true); setWeatherErr(null);
     navigator.geolocation.getCurrentPosition(async (position) => {
       try {
-        const r = await fetch(`/api/weather?lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
+        const r = await fetch(apiUrl(`/api/weather?lat=${position.coords.latitude}&lon=${position.coords.longitude}`));
         const j = await r.json();
         if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
         setWeatherPreview(j);
@@ -117,7 +119,7 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
     setLoading(true);
     setFetchErr(null);
     try {
-      const r = await fetch("/api/models", {
+      const r = await fetch(apiUrl("/api/models"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ baseURL: baseURL.trim(), apiKey: apiKey.trim() }),
@@ -158,6 +160,7 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
         visionProvider,
       });
     }
+    setApiBaseUrl(serverUrl);
     setReplyStyle(style);
     setProfile({
       name: name.trim() || "可可",
@@ -534,6 +537,21 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
               </label>
             </div>
           )}
+        </div>
+
+        <div className="settings-section-title provider-title">🌐 云端服务器后端地址（桌面端 / 多端远程调用）</div>
+        <div className="account-box">
+          <label className="fld">
+            <span>远程服务器地址 Server URL</span>
+            <input
+              value={serverUrl}
+              onChange={(e) => setServerUrl(e.target.value)}
+              placeholder="默认留空（同源/本地服务），如：https://api.yourdomain.com"
+            />
+            <div className="fld-note">
+              💡 桌面客户端或多端使用时，填入您在服务器部署的域名或公网 IP（如 <code>https://api.yourdomain.com</code>），客户端将全自动连向云端后端！
+            </div>
+          </label>
         </div>
 
         </div>

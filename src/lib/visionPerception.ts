@@ -1,3 +1,5 @@
+import { apiUrl } from "./api";
+
 /**
  * Screen & Game Vision Perception Manager
  */
@@ -131,7 +133,7 @@ export class ScreenVisionManager {
 
     this.isProcessing = true;
     try {
-      const response = await fetch("/api/vision/comment", {
+      const response = await fetch(apiUrl("/api/vision/comment"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

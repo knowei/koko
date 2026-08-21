@@ -8,6 +8,8 @@ import {
   type CompanionMemory, type CompanionProfile, type MemoryKind, type PersonalityTraits, type RandomEvent, type ReplyStyle, type WeatherInfo,
 } from "@/data/persona";
 
+import { apiUrl } from "@/lib/api";
+
 export interface StoredMsg {
   id: string;
   role: "user" | "assistant";
@@ -30,7 +32,7 @@ const accountToken = () => localStorage.getItem("koko-account-token") || "";
 async function accountRequest(path: string, init: RequestInit = {}) {
   const token = accountToken();
   if (!token) throw new Error("请先登录后使用心愿星功能。");
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...init.headers },
   });

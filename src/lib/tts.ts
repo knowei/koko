@@ -1,3 +1,5 @@
+import { apiUrl } from "./api";
+
 export interface TTSSettings {
   enabled: boolean;
   autoPlay: boolean;
@@ -240,7 +242,7 @@ class TTSPlayer {
         };
       }
 
-      const response = await fetch("/api/tts", {
+      const response = await fetch(apiUrl("/api/tts"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

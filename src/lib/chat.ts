@@ -1,3 +1,5 @@
+import { apiUrl } from "./api";
+
 export interface ChatMsg {
   role: "user" | "assistant";
   content: string;
@@ -58,7 +60,7 @@ export async function streamChat(
   signal?: AbortSignal,
 ): Promise<void> {
   try {
-    const resp = await fetch("/api/chat", {
+    const resp = await fetch(apiUrl("/api/chat"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
@@ -105,7 +107,7 @@ export async function analyzeMemory(params: {
   provider: ProviderCfg;
   today: string;
 }): Promise<MemoryAnalysisResult> {
-  const response = await fetch("/api/memory-analysis", {
+  const response = await fetch(apiUrl("/api/memory-analysis"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -123,7 +125,7 @@ export async function analyzeDiary(params: {
   agreements: Array<{ text: string; status: string; dueDate: string | null }>;
   provider: ProviderCfg;
 }): Promise<DiaryAnalysisResult> {
-  const response = await fetch("/api/diary-analysis", {
+  const response = await fetch(apiUrl("/api/diary-analysis"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
