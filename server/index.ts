@@ -13,6 +13,12 @@ import { runVisionComment, type VisionCommentBody } from "./vision.js";
 dotenv.config();
 
 const app = express();
+app.use((req, _res, next) => {
+  if (req.url.includes("//")) {
+    req.url = req.url.replace(/\/+/g, "/");
+  }
+  next();
+});
 app.use(cors());
 app.use(express.json({ limit: "15mb" }));
 
