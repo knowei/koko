@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SHOP_PRODUCTS } from "@/data/persona";
+import { GIFTS, SHOP_PRODUCTS } from "@/data/persona";
 import { useStore } from "@/store/companionStore";
 
 export function ShopScreen() {
@@ -11,6 +11,7 @@ export function ShopScreen() {
   const setPreviewSkin = useStore((state) => state.setPreviewSkin);
   const buyProduct = useStore((state) => state.buyProduct);
   const equipSkin = useStore((state) => state.equipSkin);
+  const giveGift = useStore((state) => state.giveGift);
   const [notice, setNotice] = useState<string | null>(null);
 
   const flash = (message: string) => {
@@ -47,19 +48,27 @@ export function ShopScreen() {
     }
   };
 
+  const handleGiveGift = async (refId: string, giftName: string) => {
+    const err = await giveGift(refId);
+    if (err) {
+      flash(err);
+    } else {
+      flash(`已成功送给可可一份「${giftName}」🎁`);
+    }
+  };
+
   return (
-    <section className="shop-screen" aria-label="心愿商城">
-      <header className="shop-header">
+    <section className="screen shop-screen" aria-label="心愿商城">
+      <div className="shop-header">
         <div>
-          <span>可可的</span>
           <h2>心愿商城</h2>
-          <p>签到、完成随机事件和外出可以获得心愿星。</p>
+          <p>在这里兑换礼物与心仪装扮，给可可更多惊喜吧</p>
         </div>
         <div className="shop-balance">
-          <span>当前余额</span>
+          <span>心愿星余额</span>
           <strong>✦ {points}</strong>
         </div>
-      </header>
+      </div>
 
       {previewSkin && (
         <div className="shop-tryon-banner">
@@ -70,8 +79,8 @@ export function ShopScreen() {
 
       <div className="shop-section">
         <div className="shop-section-title">
-          <h3>衣橱</h3>
-          <span>点击「试穿」可即时在立绘上预览，购买后永久拥有</span>
+          <h3>衣橱新装</h3>
+          <span>点击试穿可在立绘中预览；兑换后永久拥有，随时切换</span>
         </div>
         <div className="skin-grid">
           {/* Base skin: blue */}
@@ -136,14 +145,53 @@ export function ShopScreen() {
           <span>兑换后放入背包，每天最多赠送三件，提升亲密度与心情</span>
         </div>
         <div className="gift-shop-grid">
-          {gifts.map((product) => (
-            <button key={product.id} className="gift-product" onClick={() => void buyProduct(product.id).then(flash)}>
-              <span className="gift-product-emoji">{product.emoji}</span>
-              <strong>{product.name}</strong>
-              <span>背包 ×{inventory[product.refId] ?? 0}</span>
-              <small>✦ {product.price}</small>
-            </button>
-          ))}
+          {gifts.map((product) => {
+            const giftMeta = GIFTS.find((g) => g.id === product.refId);
+            const ownedCount = inventory[product.refId] ?? 0;
+            return (
+              <div key={product.id} className="gift-shop-card">
+                <div className="gift-card-top">
+                  <span className="gift-card-emoji">{product.emoji}</span>
+                  <div className="gift-card-main-meta">
+                    <div className="gift-card-title-row">
+                      <strong className="gift-card-name">{product.name}</strong>
+                      <span className="gift-card-price">✦ {product.price}</span>
+                    </div>
+                    <div className="gift-card-badges">
+                      <span className="gift-stat-badge affinity">💖 亲密度 +{giftMeta?.affinity ?? 3}</span>
+                      <span className="gift-stat-badge mood">🌸 心情 +{giftMeta?.mood ?? 5}</span>
+                    </div>
+                  </div>
+                </div>
+                {giftMeta?.description && (
+                  <p className="gift-card-desc">{giftMeta.description}</p>
+                )}
+                <div className="gift-card-actions-bar">
+                  <span className="gift-card-inventory">
+                    背包拥有：<strong>{ownedCount}</strong>
+                  </span>
+                  <div className="gift-card-btn-group">
+                    <button
+                      type="button"
+                      className="gift-buy-btn"
+                      onClick={() => void buyProduct(product.id).then(flash)}
+                    >
+                      兑换
+                    </button>
+                    {ownedCount > 0 && (
+                      <button
+                        type="button"
+                        className="gift-give-now-btn"
+                        onClick={() => void handleGiveGift(product.refId, product.name)}
+                      >
+                        赠送 🎁
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
       {notice && <div className="shop-notice">{notice}</div>}

@@ -290,10 +290,17 @@ export function ChatScreen() {
 
         <textarea
           value={draft}
-          placeholder={recordingMode === "click" ? "🔴 正在聆听您的说话内容…" : `跟${profile.name}说点什么…`}
+          placeholder={recordingMode === "click" ? "🔴 正在聆听您的说话内容…" : `跟${profile.name}说点什么…（Enter 发送，Shift+Enter 换行）`}
           onChange={(e) => {
             setDraft(e.target.value);
             if (showActions) setShowActions(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              if ((e.nativeEvent as any).isComposing) return;
+              e.preventDefault();
+              submit();
+            }
           }}
           rows={1}
         />

@@ -86,8 +86,18 @@ export class VoiceRecognizer {
 
     recog.onerror = (event: SpeechRecognitionErrorEvent) => {
       let msg = "语音识别错误";
-      if (event.error === "not-allowed") {
-        msg = "未获得麦克风权限，请在浏览器地址栏允许麦克风权限。";
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        if (
+          typeof window !== "undefined" &&
+          window.location.protocol === "http:" &&
+          window.location.hostname !== "localhost" &&
+          window.location.hostname !== "127.0.0.1" &&
+          !window.electronAPI?.isElectron
+        ) {
+          msg = "手机浏览器限制：由于当前使用 HTTP 协议访问，浏览器强制禁用了麦克风权限。请配置 HTTPS 域名或在桌面端使用。";
+        } else {
+          msg = "未获得麦克风权限，请在浏览器权限设置中允许访问麦克风。";
+        }
       } else if (event.error === "no-speech") {
         msg = "未检测到说话声音，请试着靠近麦克风再试一次哦。";
       } else if (event.error === "network") {
@@ -106,7 +116,36 @@ export class VoiceRecognizer {
     this.recognition = recog;
   }
 
-  public start(callbacks: STTCallbacks) {
+  public async start(callbacks: STTCallbacks) {
+    this.callbacks = callbacks;
+    this.currentFinalText = "";
+
+    // 1. Detect HTTP on remote mobile browsers where microphone is strictly blocked
+    if (
+      typeof window !== "undefined" &&
+      window.location.protocol === "http:" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1" &&
+      !window.electronAPI?.isElectron
+    ) {
+      callbacks.onError?.("手机浏览器安全限制：HTTP 访问无法调用麦克风，需要使用 HTTPS 域名访问。");
+      return;
+    }
+
+    // 2. Proactively trigger browser permission dialog via getUserMedia if supported
+    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Close tracks immediately to hand over to SpeechRecognition
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (err: any) {
+        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+          callbacks.onError?.("未获得麦克风权限，请在浏览器地址栏或系统设置中允许使用麦克风。");
+          return;
+        }
+      }
+    }
+
     if (!this.recognition) {
       this.initRecognition();
     }
@@ -117,12 +156,13 @@ export class VoiceRecognizer {
     if (this.isListening) {
       this.stop();
     }
-    this.currentFinalText = "";
-    this.callbacks = callbacks;
     try {
       this.recognition.start();
-    } catch (e) {
+    } catch (e: any) {
       console.warn("[STT] Start error:", e);
+      if (!e.message?.includes("already started")) {
+        callbacks.onError?.(e.message || "麦克风启动失败，请检查浏览器权限。");
+      }
     }
   }
 

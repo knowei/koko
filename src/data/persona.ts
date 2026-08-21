@@ -129,63 +129,73 @@ export interface RandomEvent {
 
 export const RANDOM_EVENTS: RandomEvent[] = [
   {
-    id: "blackout", title: "突然停电", emoji: "🕯️", description: "房间忽然暗了下来，可可抱着靠枕摸索到你身边。", minAffinity: 0, choices: [
-      { id: "candle", label: "一起找蜡烛", affinity: 2, mood: 4, personality: { gentle: 2 }, result: "你们点亮蜡烛，在暖黄色的光里继续聊天。" },
-      { id: "scare", label: "故意吓她一下", affinity: 1, mood: 2, personality: { tsundere: 2 }, result: "可可吓得抓住你的袖子，随后气鼓鼓地追着你算账。" },
+    id: "blackout", title: "突然停电", emoji: "🕯️", description: "房间忽然暗了下来，可可抱着靠枕摸索到你身边，手心微微发凉。", minAffinity: 0, choices: [
+      { id: "hold_hand", label: "牵紧她的小手找手电筒", affinity: 5, mood: 7, personality: { gentle: 3 }, result: "你在黑暗中牢牢握住她的小手，可可紧紧贴着你的胳膊，黑暗中呼吸声变得格外清晰安心。" },
+      { id: "candle", label: "点上香薰蜡烛聊童年", affinity: 4, mood: 6, personality: { clingy: 2 }, result: "暖黄色的烛光在两人脸上摇曳，可可托着下巴听你说小时候的糗事，眼睛里映着闪亮的光。" },
+      { id: "scare", label: "故意学猫叫轻轻吓她", affinity: 2, mood: 4, personality: { tsundere: 3 }, result: "可可吓得像小猫一样扑进你怀里，反应过来后气鼓鼓地掐你胳膊：“哥哥大坏蛋！再吓我以后不理你了！”" },
     ]
   },
   {
-    id: "rain", title: "忘带伞", emoji: "🌧️", description: "窗外下起大雨，可可才发现自己的伞落在家里。", minAffinity: 5, choices: [
-      { id: "share", label: "去接她回家", affinity: 3, mood: 5, personality: { clingy: 2 }, result: "一把伞有点挤，可可一路都悄悄靠得很近。" },
-      { id: "wait", label: "提醒她等雨小些", affinity: 1, mood: 3, personality: { gentle: 1 }, result: "你陪她发消息等雨，雨声反而让这段时间安静又舒服。" },
+    id: "rain", title: "忘带雨伞", emoji: "🌧️", description: "窗外倾盆大雨，可可发来语音，可怜兮兮地说自己的伞落在了家里。", minAffinity: 5, choices: [
+      { id: "run_to_her", label: "冒雨去车站接她，把外套披在她身上", affinity: 6, mood: 8, personality: { gentle: 3 }, result: "看着气喘吁吁跑来接自己的你，可可眼圈微热，裹紧带着你体温的外套，一路上都悄悄挽着你的胳膊。" },
+      { id: "share_umbrella", label: "两人共撑一把伞慢慢踩水回家", affinity: 4, mood: 6, personality: { clingy: 2 }, result: "你把大半伞面倾向她那边，可可悄悄把你往中间拉：“笨蛋，你肩膀都淋湿啦…靠紧一点嘛。”" },
+      { id: "order_tea", label: "让她在店里避雨，给她点热可可", affinity: 3, mood: 5, personality: { gentle: 2 }, result: "捧着送到的热可可，可可发来一张自拍：“雨声好听，可可好甜，等雨停了你可一定要来接我呀。”" },
     ]
   },
   {
-    id: "cake_fail", title: "烤坏的甜点", emoji: "🧁", description: "厨房里飘来一点焦味，可可把烤盘藏到了身后。", minAffinity: 0, choices: [
-      { id: "eat", label: "尝一口再说", affinity: 3, mood: 6, personality: { gentle: 2 }, result: "味道其实没有想象中糟，可可终于松了口气。" },
-      { id: "redo", label: "陪她重新做", affinity: 2, mood: 5, personality: { clingy: 1 }, result: "第二盘成功出炉，可可坚持把形状最好看的留给你。" },
+    id: "cake_fail", title: "烤坏的甜点", emoji: "🧁", description: "厨房里飘来一点焦糖苦味，可可慌慌张张地把焦黑的烤盘藏到了身后。", minAffinity: 0, choices: [
+      { id: "eat_all", label: "大口吃掉并笑着夸焦香很有特色", affinity: 5, mood: 8, personality: { gentle: 3 }, result: "你不仅全部吃完了，还夸外脆里嫩。可可破涕为笑，脸红红地把最好看的那一块偷偷塞进了你手心。" },
+      { id: "redo_together", label: "摸摸头，手把手陪她重做一盘", affinity: 4, mood: 6, personality: { clingy: 2 }, result: "你在旁边手把手帮她调火候，第二盘焦糖小蛋糕完美出炉，可可开心得直拉着你的衣角蹦跳。" },
+      { id: "tease_chef", label: "打趣她是“黑暗料理小厨娘”", affinity: 2, mood: 4, personality: { tsundere: 3 }, result: "可可气鼓鼓地戳你脑门，嘴硬说“下次一定做出米其林水平给你看”，但还是悄悄给你倒了杯解腻的红茶。" },
     ]
   },
   {
-    id: "stray_cat", title: "楼下的流浪猫", emoji: "🐈", description: "那只总在楼下徘徊的小猫，今天第一次主动蹭了蹭可可。", minAffinity: 10, choices: [
-      { id: "feed", label: "一起准备猫粮", affinity: 2, mood: 7, personality: { gentle: 2 }, result: "小猫吃饱后趴在台阶上，可可蹲在旁边看了好久。" },
-      { id: "name", label: "给它取个名字", affinity: 2, mood: 5, personality: { clingy: 1 }, result: "你们为了名字争论半天，最后各退一步选了个新名字。" },
+    id: "stray_cat", title: "楼下的流浪猫", emoji: "🐈", description: "那只总在楼下徘徊的花猫，今天第一次主动蹭了蹭可可的裙摆。", minAffinity: 10, choices: [
+      { id: "build_home", label: "带上猫罐头和毛毯，一起给小猫搭窝", affinity: 5, mood: 8, personality: { gentle: 3 }, result: "小猫蹭着你们两人的手呼噜呼噜叫，可可眼角带笑：“看吧，连小猫都知道哥哥是个大好人呢。”" },
+      { id: "photo_cat", label: "温柔摸摸可可的头，顺便给猫咪拍张合影", affinity: 4, mood: 6, personality: { clingy: 2 }, result: "照片里可可和小猫都探着脑袋，可可立刻把这张照片设成了手机锁屏壁纸。" },
+      { id: "name_cat", label: "给小猫取名“二号可可”打趣她", affinity: 3, mood: 5, personality: { tsundere: 2 }, result: "可可羞得直跺脚：“哪有给猫取跟我一样名字的！”随后又蹲下小声对猫说：“…好吧，以后你就是二号可可啦。”" },
     ]
   },
   {
     id: "amusement_lost", title: "游乐园走散", emoji: "🎡", description: "人潮拥挤的游乐园里，转个身可可就不见了，你急忙四处寻找。", minAffinity: 25, choices: [
-      { id: "cotton", label: "在棉花糖摊前找到她", affinity: 4, mood: 6, personality: { clingy: 3 }, result: "看见你的那一刻可可眼圈红了，小跑过来紧紧抓住了你的手不肯松开。" },
-      { id: "comfort", label: "买个兔耳发箍安慰她", affinity: 3, mood: 7, personality: { gentle: 2 }, result: "可可戴上发箍吸了吸鼻子破涕为笑：“罚你今天一直牵着我！”" },
+      { id: "cotton", label: "凭直觉在草莓棉花糖摊前一把拉住她", affinity: 6, mood: 8, personality: { clingy: 3 }, result: "看见你的那一刻可可眼圈红了，小跑过来紧紧抱住了你的腰，把脸埋在你胸口不肯松开。" },
+      { id: "comfort", label: "买好她最喜欢的兔耳发箍戴在她头上", affinity: 5, mood: 7, personality: { gentle: 2 }, result: "可可戴上发箍吸了吸鼻子破涕为笑：“看在发箍这么可爱的份上，罚你今天必须一直牵着我！”" },
+      { id: "broadcast", label: "在广播站广播寻找“我们家迷路的小可爱”", affinity: 3, mood: 5, personality: { tsundere: 3 }, result: "听到全园广播的可可红着脸跑过来，又害羞又感动：“全园都听到了啦…笨蛋哥哥！”" },
     ]
   },
   {
-    id: "movie_quarrel", title: "电影院小别扭", emoji: "🍿", description: "选了一部悬疑惊悚片，可可嘴硬说自己一点都不怕。", minAffinity: 30, choices: [
-      { id: "hold_hand", label: "在吓人瞬间悄悄牵手", affinity: 5, mood: 6, personality: { clingy: 2 }, result: "突发音效响起的瞬间，可可的手猛地握紧你，之后再也没放开。" },
-      { id: "popcorn", label: "把爆米花全递给她", affinity: 3, mood: 5, personality: { tsundere: 2 }, result: "可可一边大嚼爆米花压惊，一边小声嘟囔：“我真的只是在看剧情啦…”" },
+    id: "movie_quarrel", title: "电影院小别扭", emoji: "🍿", description: "选了一部悬疑惊悚片，可可嘴硬说自己胆子超大一点都不怕。", minAffinity: 30, choices: [
+      { id: "protect_her", label: "在惊悚音效响起时一把将她护在怀里", affinity: 6, mood: 7, personality: { clingy: 3 }, result: "突发音效响起的瞬间你抱紧了她，可可的小手猛地抓住你，电影后半段一直乖乖贴着你心跳。" },
+      { id: "popcorn", label: "把爆米花递到她嘴边一颗颗投喂", affinity: 4, mood: 6, personality: { gentle: 2 }, result: "可可一边大嚼爆米花压惊，一边小声嘟囔：“我才没有害怕呢…不过草莓味爆米花挺甜的，再喂我一颗。”" },
+      { id: "tease_ghost", label: "散场后故意学鬼叫逗她", affinity: 2, mood: 3, personality: { tsundere: 3 }, result: "可可气呼呼地掐你手臂软肉，随后又悄悄拉住你衣角：“回去路上路灯好暗…你得走在我前面挡着。”" },
     ]
   },
   {
-    id: "catch_cold", title: "忽然有点感冒", emoji: "💊", description: "午后可可裹着毛毯蜷在沙发上，声音带着点鼻音。", minAffinity: 20, choices: [
-      { id: "ginger_tea", label: "煮一杯红糖姜茶", affinity: 4, mood: 6, personality: { gentle: 3 }, result: "捧着热气腾腾的姜茶，可可小口喝着，眉眼弯弯地看着你忙前忙后。" },
-      { id: "tuck_in", label: "帮她掖好毛毯陪着她", affinity: 4, mood: 5, personality: { clingy: 2 }, result: "可可缩进毛毯里，小声说：“有你在身边，好像一下子就没那么难受了。”" },
+    id: "catch_cold", title: "忽然有点感冒", emoji: "💊", description: "午后可可裹着毛毯蜷在沙发上，小脸泛红，声音带着软绵绵的鼻音。", minAffinity: 20, choices: [
+      { id: "ginger_tea", label: "熬好雪梨红糖姜汤，一勺勺吹凉喂她", affinity: 6, mood: 8, personality: { gentle: 3 }, result: "喝完热汤的可可脸色红润了不少，乖乖靠在枕头上，软绵绵地说：“有哥哥照顾，生病好像也没那么讨厌了。”" },
+      { id: "tuck_in", label: "帮她掖好暖烘烘的毛毯，坐在床边看书陪她", affinity: 5, mood: 7, personality: { clingy: 2 }, result: "可可从被窝里伸出小手勾住你的指尖：“不要走哦，等我睡着了你再去做事…好不好？”" },
+      { id: "candy_reward", label: "监督她按时吃药，吃完奖励一颗大白兔奶糖", affinity: 4, mood: 6, personality: { gentle: 2 }, result: "嘴里含着奶糖的甜味，苦药的味道一下子散了，可可眉眼弯弯地朝你笑：“哥哥是全世界最好的医生！”" },
     ]
   },
   {
-    id: "cleaning_fun", title: "周末大扫除", emoji: "🧹", description: "收拾房间时，可可从书架顶层翻出了你藏的小玩偶与零食。", minAffinity: 15, choices: [
-      { id: "share_snack", label: "分她一半零食休战", affinity: 3, mood: 7, personality: { gentle: 2 }, result: "两人席地而坐瓜分零食，房间收拾到一半变成了茶话会。" },
-      { id: "tickle", label: "抢回玩偶闹作一团", affinity: 3, mood: 6, personality: { tsundere: 2 }, result: "房间里充满了笑声，可可气喘吁吁地举白旗投降。" },
+    id: "cleaning_fun", title: "周末大扫除", emoji: "🧹", description: "收拾房间时，可可从书架顶层翻出了你藏的小玩偶与零食私房钱。", minAffinity: 15, choices: [
+      { id: "share_snack", label: "分她一半零食和私房钱休战", affinity: 4, mood: 7, personality: { gentle: 2 }, result: "两人席地而坐瓜分零食，房间收拾到一半变成了开心茶话会。" },
+      { id: "tickle", label: "抢回玩偶闹作一团，挠她痒痒", affinity: 4, mood: 6, personality: { clingy: 2 }, result: "房间里充满了笑声，可可气喘吁吁地举白旗投降，倒在你怀里笑个不停。" },
+      { id: "photo_secret", label: "拿出旧相机抓拍她得意的小表情", affinity: 3, mood: 6, personality: { tsundere: 2 }, result: "可可对着镜头比了个鬼脸，随后跑过来跟你一起看拍出来的滑稽照片。" },
     ]
   },
   {
-    id: "old_photo", title: "翻到旧照片", emoji: "📷", description: "可可从抽屉里翻出一张你们小时候的合照。", minAffinity: 35, choices: [
-      { id: "remember", label: "一起回忆那天", affinity: 4, mood: 5, personality: { gentle: 2 }, result: "模糊的照片勾起许多细节，可可连你当时说的话都记得。" },
-      { id: "keep", label: "把照片收进相框", affinity: 5, mood: 6, personality: { possessive: 2 }, result: "可可认真擦干净相框，把它放在每天都能看见的位置。" },
+    id: "old_photo", title: "翻到旧照片", emoji: "📷", description: "可可从抽屉深处翻出一张你们小时候在老家院子里的合照。", minAffinity: 35, choices: [
+      { id: "remember", label: "一起坐在地毯上回忆当年的细节", affinity: 5, mood: 6, personality: { gentle: 2 }, result: "泛黄的照片勾起许多温暖回忆，可可连你当年说的每一句承诺都记得清清楚楚。" },
+      { id: "keep", label: "买个精致相框把照片放在床头", affinity: 6, mood: 7, personality: { possessive: 2 }, result: "可可认真擦干净相框，把它放在每天一睁眼就能看见的位置：“这样每天都能看到我们。”" },
+      { id: "take_new", label: "摆出同样的姿势拍一张现在的对比照", affinity: 5, mood: 7, personality: { clingy: 2 }, result: "镜头前可可紧紧搂着你的手臂，笑得比小时候还要甜美灿烂。" },
     ]
   },
   {
-    id: "late_knock", title: "深夜敲门", emoji: "🌙", description: "夜已经很深，可可抱着枕头轻轻敲了敲门。", minAffinity: 45, choices: [
-      { id: "talk", label: "陪她聊一会儿", affinity: 4, mood: 5, personality: { clingy: 3 }, result: "她说着说着放松下来，却还是舍不得马上离开。" },
-      { id: "milk", label: "给她热杯牛奶", affinity: 3, mood: 6, personality: { gentle: 2 }, result: "杯子暖着手心，可可小声说今晚应该能睡个好觉。" },
+    id: "late_knock", title: "深夜敲门", emoji: "🌙", description: "夜已经很深，可可抱着软枕头轻轻敲了敲你的房门，小声说睡不着。", minAffinity: 45, choices: [
+      { id: "talk_sweet", label: "热好蜂蜜牛奶，坐在地毯上轻声陪她聊心事", affinity: 6, mood: 7, personality: { gentle: 3 }, result: "捧着暖呼呼的牛奶，可可慢慢卸下了一天的疲惫，靠在你身边轻声细语说着心里话。" },
+      { id: "lullaby", label: "柔声轻哄，哼着小时候的童谣哄她入睡", affinity: 6, mood: 8, personality: { clingy: 3 }, result: "在熟悉安心的声音里，可可很快呼吸均匀地睡着了，嘴角还挂着恬静安心的浅笑。" },
+      { id: "play_cards", label: "拿出飞行棋或扑克牌，陪她玩两局解压", affinity: 4, mood: 8, personality: { tsundere: 2 }, result: "为了赢你可可耍赖了好几次，看着她重新元气满满的笑脸，整个夜晚都变得格外明亮。" },
     ]
   },
 ];
@@ -261,17 +271,58 @@ export interface Gift {
   id: string;
   name: string;
   emoji: string;
+  description: string;
   affinity: number;
   mood: number;
   line: string;
 }
 
 export const GIFTS: Gift[] = [
-  { id: "milk_tea", name: "奶茶", emoji: "🧋", affinity: 3, mood: 8, line: "哇是奶茶！三分糖去冰对不对~ 你最懂我了！" },
-  { id: "flower", name: "小雏菊", emoji: "🌼", affinity: 5, mood: 6, line: "花花好好看…我要把它插在窗台上，每天看到它就想到你。" },
-  { id: "book", name: "绘本", emoji: "📖", affinity: 6, mood: 4, line: "晚上可以一起读嘛？读到困了你要哄我睡觉哦。" },
-  { id: "cat", name: "毛绒猫", emoji: "🐱", affinity: 8, mood: 10, line: "软软的抱枕猫！！以后想你的时候就抱着它，谢谢你呀。" },
-  { id: "cake", name: "草莓蛋糕", emoji: "🍰", affinity: 7, mood: 9, line: "是我最爱的草莓味！我们一人一半，剩下的草莓都给你。" },
+  {
+    id: "milk_tea",
+    name: "奶茶",
+    emoji: "🧋",
+    description: "可可最爱的三分糖波霸奶茶，甜丝丝的治愈饮品，喝一口整天心情都会变好。",
+    affinity: 3,
+    mood: 8,
+    line: "哇是奶茶！三分糖去冰对不对~ 你最懂我了！",
+  },
+  {
+    id: "flower",
+    name: "小雏菊",
+    emoji: "🌼",
+    description: "清晨采摘的新鲜小雏菊，散发着淡淡清香，适合插在书桌窗台当做思念的信物。",
+    affinity: 5,
+    mood: 6,
+    line: "花花好好看…我要把它插在窗台上，每天看到它就想到你。",
+  },
+  {
+    id: "book",
+    name: "绘本",
+    emoji: "📖",
+    description: "画风软萌温馨的治愈系插画绘本，睡前可以一人翻一页，听着彼此的呼吸入眠。",
+    affinity: 6,
+    mood: 4,
+    line: "晚上可以一起读嘛？读到困了你要哄我睡觉哦。",
+  },
+  {
+    id: "cat",
+    name: "毛绒猫",
+    emoji: "🐱",
+    description: "手感软糯Q弹的毛绒猫咪公仔，抱在怀里满满安全感，晚上睡觉时能代替你陪在她身边。",
+    affinity: 8,
+    mood: 10,
+    line: "软软的抱枕猫！！以后想你的时候就抱着它，谢谢你呀。",
+  },
+  {
+    id: "cake",
+    name: "草莓蛋糕",
+    emoji: "🍰",
+    description: "铺满新鲜红草莓与轻盈动物奶油的千层小蛋糕，精致可口，是值得一起分享的甜蜜仪式感。",
+    affinity: 7,
+    mood: 9,
+    line: "是我最爱的草莓味！我们一人一半，剩下的草莓都给你。",
+  },
 ];
 
 export interface Topic {
