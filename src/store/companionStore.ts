@@ -171,6 +171,7 @@ interface State {
   setExpression: (expr: ExpressionType, durationMs?: number) => void;
   setTtsSettings: (settings: Partial<TTSSettings>) => void;
   playMessageAudio: (messageId: string) => Promise<void>;
+  speakDirectText: (text: string) => Promise<void>;
   stopAudio: () => void;
   quickAction: (actionType: "pat" | "water" | "praise" | "miss") => Promise<void>;
   addMemory: (text: string, kind?: MemoryKind) => void;
@@ -284,6 +285,17 @@ export const useStore = create<State>()(
         await ttsPlayer.play({
           messageId,
           text: msg.content,
+          settings: state.ttsSettings,
+          mood: state.mood,
+          hour: new Date().getHours(),
+        });
+      },
+      speakDirectText: async (text: string) => {
+        const state = get();
+        if (!text || !text.trim()) return;
+        await ttsPlayer.play({
+          messageId: `direct-${Date.now()}`,
+          text,
           settings: state.ttsSettings,
           mood: state.mood,
           hour: new Date().getHours(),

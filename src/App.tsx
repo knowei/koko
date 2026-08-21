@@ -11,6 +11,20 @@ import { RandomEventModal } from "@/components/RandomEventModal";
 import { ShopScreen } from "@/components/ShopScreen";
 import { MemoryScreen } from "@/components/MemoryScreen";
 import { AccountModal } from "@/components/AccountModal";
+import { DesktopPetWidget } from "@/components/DesktopPetWidget";
+
+declare global {
+  interface Window {
+    electronAPI?: {
+      isElectron?: boolean;
+      switchWindowMode: (mode: "full" | "mini") => void;
+      minimize: () => void;
+      close: () => void;
+      captureScreenFrame?: () => Promise<string | null>;
+      onWindowModeChange: (cb: (mode: "full" | "mini") => void) => void;
+    };
+  }
+}
 
 export default function App() {
   const affinity = useStore((s) => s.affinity);
@@ -26,12 +40,34 @@ export default function App() {
   const syncWallet = useStore((s) => s.syncWallet);
   const [showSettings, setShowSettings] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [showPetWidget, setShowPetWidget] = useState(false);
+  const [isMiniCompanion, setIsMiniCompanion] = useState(() => {
+    return typeof window !== "undefined" && window.location.search.includes("mode=pet");
+  });
   const [activeView, setActiveView] = useState<"chat" | "life" | "shop" | "memories">("chat");
   const [now, setNow] = useState(() => new Date());
   const greetOnReturn = useStore((s) => s.greetOnReturn);
   const proactivePing = useStore((s) => s.proactivePing);
   const markActive = useStore((s) => s.markActive);
   const checkAgreementReminders = useStore((s) => s.checkAgreementReminders);
+
+  useEffect(() => {
+    if (window.electronAPI?.onWindowModeChange) {
+      window.electronAPI.onWindowModeChange((mode) => {
+        setIsMiniCompanion(mode === "mini");
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isMiniCompanion) {
+      document.documentElement.classList.add("transparent-mode");
+      document.body.classList.add("transparent-mode");
+    } else {
+      document.documentElement.classList.remove("transparent-mode");
+      document.body.classList.remove("transparent-mode");
+    }
+  }, [isMiniCompanion]);
 
   const lv = affinityLevel(affinity);
   const routine = getRoutine(now.getHours());
@@ -90,6 +126,23 @@ export default function App() {
     return () => controller.abort();
   }, [profile.city, setWeather, weather]);
 
+  if (isMiniCompanion) {
+    return (
+      <div className="standalone-pet-root">
+        <DesktopPetWidget
+          onClose={() => {
+            if (window.electronAPI) {
+              window.electronAPI.switchWindowMode("full");
+            } else {
+              setIsMiniCompanion(false);
+            }
+          }}
+          isPipWindow={true}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <div className="phone">
@@ -117,6 +170,19 @@ export default function App() {
             </div>
           </div>
           <div className="top-actions">
+            <button
+              className="ghost-btn pet-top-btn"
+              title="切换为桌面悬浮陪伴小窗（置顶陪伴/实时看游戏战况）"
+              onClick={() => {
+                if (window.electronAPI) {
+                  window.electronAPI.switchWindowMode("mini");
+                } else {
+                  setShowPetWidget(true);
+                }
+              }}
+            >
+              🌸 悬浮陪伴
+            </button>
             <button className="ghost-btn desktop-memory-btn" onClick={() => setActiveView(activeView === "memories" ? "chat" : "memories")}>
               {activeView === "memories" ? "← 返回" : "📖 回忆"}
             </button>
@@ -138,6 +204,25 @@ export default function App() {
             >
               ↺
             </button>
+
+            {window.electronAPI?.isElectron && (
+              <div className="desktop-win-controls">
+                <button
+                  className="ghost-btn win-ctrl-btn"
+                  title="最小化"
+                  onClick={() => window.electronAPI?.minimize()}
+                >
+                  —
+                </button>
+                <button
+                  className="ghost-btn win-ctrl-btn win-close"
+                  title="退出"
+                  onClick={() => window.electronAPI?.close()}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
@@ -155,15 +240,20 @@ export default function App() {
 
         <nav className="mobile-nav" aria-label="手机端导航">
           <button className={activeView === "chat" ? "active" : ""} onClick={() => setActiveView("chat")}>💬<span>聊天</span></button>
-          <button className={activeView === "life" ? "active" : ""} onClick={() => setActiveView("life")}>🎡<span>陪伴</span></button>
+          <button className={activeView === "life" ? "active" : ""} onClick={() => setActiveView("life")}>🎡<span>互动</span></button>
           <button className={activeView === "shop" ? "active" : ""} onClick={() => setActiveView("shop")}>🛍️<span>商城</span></button>
           <button className={activeView === "memories" ? "active" : ""} onClick={() => setActiveView("memories")}>📖<span>回忆</span></button>
+          <button onClick={() => {
+            if (window.electronAPI) window.electronAPI.switchWindowMode("mini");
+            else setShowPetWidget(true);
+          }}>🌸<span>悬浮</span></button>
           <button onClick={() => setShowSettings(true)}>⚙️<span>设置</span></button>
         </nav>
       </div>
 
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} onOpenAccount={() => setShowAccount(true)} />}
       {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
+      {showPetWidget && <DesktopPetWidget onClose={() => setShowPetWidget(false)} />}
       <RandomEventModal />
     </div>
   );

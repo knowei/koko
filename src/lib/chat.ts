@@ -8,6 +8,12 @@ export interface ProviderCfg {
   baseURL?: string;
   apiKey?: string;
   model?: string;
+  visionProvider?: {
+    enabled: boolean;
+    baseURL?: string;
+    apiKey?: string;
+    model?: string;
+  };
 }
 
 export interface ChatContext {

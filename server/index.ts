@@ -8,12 +8,13 @@ import crypto from "node:crypto";
 import { buildSystemPrompt, DEFAULT_PERSONALITY, DEFAULT_PROFILE, RANDOM_EVENTS, type CompanionMemory, type CompanionProfile, type PersonalityTraits, type ReplyStyle, type WeatherInfo } from "../src/data/persona.js";
 import { createToken, db, hashPassword, initPlatform, requireAuth, SERVER_PRODUCTS, transaction, type AuthRequest, verifyPassword } from "./platform.js";
 import { synthesizeCustomTTS, synthesizeEdgeTTS } from "./tts.js";
+import { runVisionComment, type VisionCommentBody } from "./vision.js";
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "15mb" }));
 
 const PORT = Number(process.env.PORT) || 8787;
 const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "claude-opus-4-7";
@@ -622,6 +623,17 @@ app.post("/api/tts", async (req, res) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "语音合成失败。";
     console.error("[ai-companion] TTS 失败：", message);
+    res.status(502).json({ error: message });
+  }
+});
+
+app.post("/api/vision/comment", async (req, res) => {
+  try {
+    const result = await runVisionComment(req.body as VisionCommentBody);
+    res.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "视觉分析失败。";
+    console.error("[ai-companion] 视觉分析失败：", message);
     res.status(502).json({ error: message });
   }
 });

@@ -20,6 +20,10 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
   const [baseURL, setBaseURL] = useState(provider.baseURL ?? "https://api.openai.com/v1");
   const [apiKey, setApiKey] = useState(provider.apiKey ?? "");
   const [model, setModel] = useState(provider.model ?? "gpt-4o-mini");
+  const [visionEnabled, setVisionEnabled] = useState(provider.visionProvider?.enabled || false);
+  const [visionBaseURL, setVisionBaseURL] = useState(provider.visionProvider?.baseURL || "https://api.openai.com/v1");
+  const [visionApiKey, setVisionApiKey] = useState(provider.visionProvider?.apiKey || "");
+  const [visionModel, setVisionModel] = useState(provider.visionProvider?.model || "gpt-4o-mini");
 
   const [models, setModels] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -133,10 +137,26 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
   };
 
   const save = () => {
+    const visionProvider = {
+      enabled: visionEnabled,
+      baseURL: visionBaseURL.trim(),
+      apiKey: visionApiKey.trim(),
+      model: visionModel.trim(),
+    };
+
     if (mode === "custom") {
-      setProvider({ mode, baseURL: baseURL.trim(), apiKey: apiKey.trim(), model: model.trim() });
+      setProvider({
+        mode,
+        baseURL: baseURL.trim(),
+        apiKey: apiKey.trim(),
+        model: model.trim(),
+        visionProvider,
+      });
     } else {
-      setProvider({ mode: "default" });
+      setProvider({
+        mode: "default",
+        visionProvider,
+      });
     }
     setReplyStyle(style);
     setProfile({
@@ -465,6 +485,56 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
             </label>
           </div>
         )}
+
+        <div className="settings-section-title provider-title">👁️ 独立看图/视觉识别模型（双模型协同）</div>
+        <div className="account-box">
+          <div className="toggle-row">
+            <div>
+              <strong>启用独立看图模型</strong>
+              <div className="fld-note">
+                主模型用纯文本（如 DeepSeek / Qwen-Chat），看图用视觉模型（如 GPT-4o-mini / Qwen-VL / GLM-4V）
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={visionEnabled}
+              onChange={(e) => setVisionEnabled(e.target.checked)}
+            />
+          </div>
+
+          {visionEnabled && (
+            <div className="custom-fields" style={{ marginTop: "12px" }}>
+              <label className="fld">
+                <span>视觉接口 Base URL</span>
+                <input
+                  value={visionBaseURL}
+                  onChange={(e) => setVisionBaseURL(e.target.value)}
+                  placeholder="https://api.openai.com/v1"
+                />
+              </label>
+              <label className="fld">
+                <span>视觉 API Key</span>
+                <input
+                  type="password"
+                  value={visionApiKey}
+                  onChange={(e) => setVisionApiKey(e.target.value)}
+                  placeholder="sk-..."
+                />
+              </label>
+              <label className="fld">
+                <span>视觉模型 Model</span>
+                <input
+                  value={visionModel}
+                  onChange={(e) => setVisionModel(e.target.value)}
+                  placeholder="gpt-4o-mini / qwen-vl-plus / glm-4v"
+                />
+                <div className="fld-note" style={{ color: "var(--pink)" }}>
+                  💡 运行流程：屏幕截图 ➔ 视觉模型提取代码/游戏活动 ➔ 你的主模型（如 DeepSeek）生成专属人设妹妹台词！
+                </div>
+              </label>
+            </div>
+          )}
+        </div>
 
         </div>
         <div className="modal-actions settings-footer">

@@ -3,5 +3,6 @@ node_modules/
 dist/
 *.tsbuildinfo
 backups/
+scratch/
 *.kra~
 *.png-autosave.kra

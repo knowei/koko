@@ -913,20 +913,56 @@ body {
   .character-sprite { height: 112%; bottom: -16%; }
   .side-block { padding: 11px; }
   .mobile-nav {
-    display: grid; grid-template-columns: repeat(5, 1fr); flex: none;
-    padding: 5px 8px max(5px, env(safe-area-inset-bottom)); background: #fffdfb;
+    display: grid; grid-template-columns: repeat(6, 1fr); flex: none;
+    padding: 4px 4px max(4px, env(safe-area-inset-bottom)); background: #fffdfb;
     border-top: 1px solid var(--line);
   }
   .mobile-nav button {
-    display: grid; justify-items: center; gap: 1px; padding: 3px; color: var(--ink-soft);
-    background: none; border: 0; font-family: var(--body); font-size: 17px; cursor: pointer;
+    display: grid; justify-items: center; gap: 1px; padding: 3px 1px; color: var(--ink-soft);
+    background: none; border: 0; font-family: var(--body); font-size: 16px; cursor: pointer;
   }
-  .mobile-nav button span { font-size: 10px; }
+  .mobile-nav button span { font-size: 9.5px; }
   .mobile-nav button.active { color: var(--pink); }
   .bubble { max-width: 86%; font-size: 14px; }
-  .msg-list { padding: 11px; }
-  .composer { padding: 8px; }
-  .send-btn { padding: 0 15px; }
+  .msg-list { padding: 10px 8px; }
+  .composer {
+    padding: 5px 6px;
+    gap: 4px;
+  }
+  .action-popover-btn,
+  .voice-record-btn,
+  .quick-tts-icon-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    border-radius: 10px;
+    flex: none;
+  }
+  .composer textarea {
+    padding: 6px 8px;
+    font-size: 13px;
+    border-radius: 12px;
+    min-width: 0;
+  }
+  .send-btn {
+    padding: 0 11px;
+    font-size: 13.5px;
+    border-radius: 12px;
+    flex: none;
+  }
+  .quick-reply-row,
+  .quick-suggestions-row {
+    padding: 3px 6px;
+    gap: 4px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .suggestion-pill {
+    padding: 2px 7px;
+    font-size: 11px;
+    flex: none;
+  }
   .style-options { grid-template-columns: 1fr; }
   .profile-grid { grid-template-columns: 1fr; }
   .settings-drawer { width: 100%; max-width: none; height: 100dvh; border: 0; border-radius: 0; }
@@ -2272,6 +2308,520 @@ body {
   from { transform: translateY(4px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* ============================================================
+   Desktop Pet Widget & Vision Perception Styles
+   ============================================================ */
+.desktop-pet-container {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  touch-action: none;
+  animation: petFadeIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes petFadeIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.desktop-pet-container.pip-mode {
+  position: static;
+  width: 100vw;
+  height: 100vh;
+  justify-content: center;
+  background: transparent;
+}
+
+/* Speech Bubble */
+.pet-speech-bubble {
+  position: relative;
+  background: #ffffff;
+  border: 1.5px solid var(--pink-soft);
+  border-radius: 18px;
+  padding: 10px 14px;
+  max-width: 260px;
+  box-shadow: 0 8px 24px rgba(224, 114, 137, 0.22), 0 2px 6px rgba(0, 0, 0, 0.04);
+  animation: petBubblePop 0.2s ease-out;
+}
+
+@keyframes petBubblePop {
+  from { transform: translateY(4px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.pet-bubble-content {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ink);
+  text-align: left;
+}
+
+.pet-bubble-tail {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border-right: 1.5px solid var(--pink-soft);
+  border-bottom: 1.5px solid var(--pink-soft);
+}
+
+/* Pet Character Wrap */
+.pet-character-wrap {
+  position: relative;
+  width: 220px;
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  transition: transform 0.15s ease;
+  background: transparent;
+}
+
+.pet-character-wrap:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.live2d-canvas {
+  display: block;
+  pointer-events: auto;
+  user-select: none;
+  touch-action: none;
+}
+
+.live2d-fallback-msg {
+  font-size: 11px;
+  color: var(--ink-soft);
+  padding: 10px;
+}
+
+.pet-drag-handle {
+  position: absolute;
+  top: 4px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--pink-soft);
+  border-radius: 6px;
+  padding: 2px 5px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  opacity: 0.6;
+  z-index: 10;
+  transition: opacity 0.15s;
+}
+
+.pet-character-wrap:hover .pet-drag-handle {
+  opacity: 1;
+}
+
+.pet-emotion-badge {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  background: #ffffff;
+  border: 1px solid var(--pink-soft);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pink);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+}
+
+.pet-sprite {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pet-sprite .avatar-img {
+  animation: petBreathe 3.5s ease-in-out infinite;
+}
+
+@keyframes petBreathe {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0); }
+}
+
+/* Touch Zones */
+.pet-touch-zones {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+}
+
+.touch-zone {
+  position: absolute;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.touch-zone.head-zone {
+  top: 15px;
+  left: 45px;
+  width: 80px;
+  height: 50px;
+  border-radius: 50%;
+}
+
+.touch-zone.cheek-zone {
+  top: 65px;
+  left: 40px;
+  width: 90px;
+  height: 45px;
+  border-radius: 40%;
+}
+
+.touch-zone.hand-zone {
+  bottom: 25px;
+  left: 30px;
+  width: 110px;
+  height: 50px;
+  border-radius: 20px;
+}
+
+/* Pet Controls Dock */
+.pet-controls-bar {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1.5px solid var(--pink-soft);
+  border-radius: 999px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Radar Scan HUD */
+.pet-scan-hud {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(224, 135, 154, 0.95), rgba(244, 166, 182, 0.95));
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(224, 135, 154, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 100;
+  animation: scanHudPulse 1.2s infinite alternate ease-in-out;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+@keyframes scanHudPulse {
+  0% { transform: translateX(-50%) scale(0.96); opacity: 0.88; }
+  100% { transform: translateX(-50%) scale(1.03); opacity: 1; box-shadow: 0 4px 20px rgba(224, 135, 154, 0.7); }
+}
+
+/* Ultra-Sleek Frosted Glass Text Input Capsule */
+.pet-text-input-box {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 95%;
+  max-width: 270px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid var(--pink-soft);
+  border-radius: 999px;
+  padding: 4px 6px 4px 12px;
+  box-shadow: 0 8px 24px rgba(224, 114, 137, 0.28), 0 2px 6px rgba(0, 0, 0, 0.06);
+  margin-bottom: 3px;
+  animation: petInputSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 30;
+}
+
+@keyframes petInputSlideUp {
+  from { transform: translateY(6px) scale(0.96); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.pet-text-input-box input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.pet-input-send-btn {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: none;
+  background: var(--pink);
+  color: #ffffff;
+  font-family: var(--display);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  flex: none;
+  transition: all 0.15s ease;
+}
+
+.pet-input-send-btn:hover:not(:disabled) {
+  background: #d36e84;
+  transform: scale(1.05);
+}
+
+.pet-input-send-btn:disabled {
+  background: #e8c4cc;
+  cursor: not-allowed;
+}
+
+.pet-input-close-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition: background 0.15s;
+}
+
+.pet-input-close-btn:hover {
+  background: rgba(224, 114, 137, 0.2);
+  color: var(--pink);
+}
+
+/* Ultra-Sleek Frosted Glass Capsule Dock */
+.pet-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(180, 120, 110, 0.22), 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 4px;
+  z-index: 20;
+}
+
+.pet-ctrl-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 4px 6px;
+  min-width: 32px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.pet-ctrl-btn .btn-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  letter-spacing: -0.2px;
+  transition: color 0.15s ease;
+}
+
+.pet-ctrl-btn:hover {
+  background: rgba(224, 135, 154, 0.15);
+  color: var(--pink);
+  transform: translateY(-2px);
+}
+
+.pet-ctrl-btn:hover .btn-label {
+  color: var(--pink);
+}
+
+.pet-ctrl-btn.mode-toggle-btn.live2d {
+  color: #1a56db;
+}
+
+.pet-ctrl-btn.mode-toggle-btn.live2d:hover {
+  background: rgba(26, 86, 219, 0.12);
+}
+
+.pet-ctrl-btn.look-btn {
+  color: var(--pink);
+}
+
+.pet-ctrl-btn.look-btn.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.pet-ctrl-btn.cruise-btn.active {
+  color: #057a55;
+  background: rgba(49, 196, 141, 0.18);
+}
+
+.cruise-pulse-dot {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #31c48d;
+  box-shadow: 0 0 6px #31c48d;
+  animation: pulseCruiseDot 1s infinite alternate;
+}
+
+@keyframes pulseCruiseDot {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 8px #31c48d; }
+}
+
+.pet-ctrl-btn.voice-btn.recording {
+  background: rgba(224, 36, 36, 0.18);
+  color: #e02424;
+}
+
+.pet-ctrl-btn.close-btn {
+  min-width: 24px;
+  padding: 4px 6px;
+  border-radius: 50%;
+  color: var(--ink-soft);
+}
+
+.pet-ctrl-btn.close-btn:hover {
+  background: rgba(224, 36, 36, 0.15);
+  color: #e02424;
+}
+
+.pet-toast-alert {
+  background: rgba(45, 30, 35, 0.88);
+  color: #ffffff;
+  font-size: 11.5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: petFadeIn 0.2s ease-out;
+}
+
+html.transparent-mode,
+body.transparent-mode,
+#root.transparent-mode {
+  background: transparent !important;
+}
+
+/* Standalone Electron Desktop Companion Mode */
+.standalone-pet-root {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  overflow: hidden;
+  user-select: none;
+}
+
+.standalone-pet-root .desktop-pet-container {
+  position: static;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  background: transparent !important;
+}
+
+.standalone-pet-root .pet-character-wrap {
+  -webkit-app-region: drag;
+}
+
+.standalone-pet-root button,
+.standalone-pet-root .pet-controls-bar,
+.standalone-pet-root .pet-touch-zones,
+.standalone-pet-root .pet-speech-bubble {
+  -webkit-app-region: no-drag;
+}
+
+/* Desktop Window Controls in Topbar */
+.desktop-win-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  padding-left: 10px;
+  border-left: 1.5px solid var(--line);
+  -webkit-app-region: no-drag;
+}
+
+.win-ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.win-ctrl-btn:hover {
+  background: var(--peach);
+  color: var(--ink);
+  border-color: var(--pink);
+}
+
+.win-ctrl-btn.win-close:hover {
+  background: #e02424;
+  color: #ffffff;
+  border-color: #e02424;
+}
+
+.topbar {
+  -webkit-app-region: drag;
+}
+
+.top-actions,
+.top-actions *,
+.who,
+.who * {
+  -webkit-app-region: no-drag;
+}
+
 
 
 
