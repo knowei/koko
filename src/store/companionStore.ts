@@ -204,7 +204,7 @@ interface State {
   todayGamesCount: number;
   lastGameDate: string | null;
   finishGameMatch: (
-    gameType: "gomoku" | "tictactoe" | "mindmatch",
+    gameType: "gomoku" | "tictactoe" | "mindmatch" | "xiangqi" | "go" | "memorymatch",
     result: "win" | "lose" | "draw",
     scoreDetail?: string
   ) => Promise<{
@@ -808,6 +808,21 @@ export const useStore = create<State>()(
           if (result === "win") { affinityGain = 2; moodGain = 4; pointsGain = 5; }
           else if (result === "lose") { affinityGain = 1; moodGain = 5; pointsGain = 4; }
           else { affinityGain = 2; moodGain = 3; pointsGain = 4; }
+        } else if (gameType === "xiangqi") {
+          gameTitle = "中国象棋对弈";
+          if (result === "win") { affinityGain = 6; moodGain = 8; pointsGain = 18; }
+          else if (result === "lose") { affinityGain = 3; moodGain = 10; pointsGain = 12; }
+          else { affinityGain = 4; moodGain = 6; pointsGain = 12; }
+        } else if (gameType === "go") {
+          gameTitle = "围棋围炉落子";
+          if (result === "win") { affinityGain = 7; moodGain = 9; pointsGain = 20; }
+          else if (result === "lose") { affinityGain = 4; moodGain = 10; pointsGain = 15; }
+          else { affinityGain = 5; moodGain = 7; pointsGain = 15; }
+        } else if (gameType === "memorymatch") {
+          gameTitle = "记忆翻牌对决";
+          if (result === "win") { affinityGain = 3; moodGain = 5; pointsGain = 8; }
+          else if (result === "lose") { affinityGain = 2; moodGain = 6; pointsGain = 6; }
+          else { affinityGain = 2; moodGain = 4; pointsGain = 6; }
         } else {
           gameTitle = "心灵默契测试";
           if (result === "win") { affinityGain = 6; moodGain = 8; pointsGain = 20; }
