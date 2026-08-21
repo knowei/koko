@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/store/companionStore";
 import { generateSuggestions } from "@/lib/suggestions";
 import { MessageSegmentView } from "@/components/MessageSegmentView";
+import { voiceRecognizer, isSTTSupported } from "@/lib/stt";
 
 export function ChatScreen() {
   const messages = useStore((s) => s.messages);
@@ -16,6 +17,16 @@ export function ChatScreen() {
   const [draft, setDraft] = useState("");
   const [showActions, setShowActions] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // STT Voice Recording States
+  const [recordingMode, setRecordingMode] = useState<"hold" | "click" | null>(null);
+  const [recordedText, setRecordedText] = useState("");
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [sttNotice, setSttNotice] = useState<string | null>(null);
+  const holdTimerRef = useRef<number | null>(null);
+  const startYRef = useRef<number>(0);
+  const isHoldingRef = useRef(false);
+  const latestRecordedTextRef = useRef("");
 
   const ttsSettings = useStore((s) => s.ttsSettings);
   const setTtsSettings = useStore((s) => s.setTtsSettings);
@@ -32,6 +43,102 @@ export function ChatScreen() {
     setDraft("");
     setShowActions(false);
     void send(text);
+  };
+
+  const handleMicPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (streaming) return;
+    if (!isSTTSupported()) {
+      setSttNotice("当前浏览器不支持原生语音识别，推荐使用 Chrome、Edge 或 Safari 浏览器。");
+      setTimeout(() => setSttNotice(null), 4000);
+      return;
+    }
+
+    // If currently in click-recording mode, clicking again stops it
+    if (recordingMode === "click") {
+      voiceRecognizer.stop();
+      setRecordingMode(null);
+      return;
+    }
+
+    startYRef.current = e.clientY;
+    isHoldingRef.current = false;
+    latestRecordedTextRef.current = "";
+
+    // Timer to differentiate click vs long-press hold
+    holdTimerRef.current = window.setTimeout(() => {
+      isHoldingRef.current = true;
+      setRecordingMode("hold");
+      setIsCanceling(false);
+      setRecordedText("");
+      voiceRecognizer.start({
+        onInterimText: (t) => {
+          setRecordedText(t);
+          latestRecordedTextRef.current = t;
+        },
+        onError: (msg) => {
+          setSttNotice(msg);
+          setRecordingMode(null);
+          setTimeout(() => setSttNotice(null), 4000);
+        },
+      });
+    }, 220);
+  };
+
+  const handleMicPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (isHoldingRef.current && recordingMode === "hold") {
+      const diff = startYRef.current - e.clientY;
+      setIsCanceling(diff > 55);
+    }
+  };
+
+  const handleMicPointerUp = () => {
+    if (holdTimerRef.current) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    if (isHoldingRef.current && recordingMode === "hold") {
+      isHoldingRef.current = false;
+      const willCancel = isCanceling;
+      const text = latestRecordedTextRef.current.trim();
+      voiceRecognizer.stop();
+      setRecordingMode(null);
+      setRecordedText("");
+      setIsCanceling(false);
+
+      if (!willCancel && text) {
+        void send(text);
+      }
+    } else if (!isHoldingRef.current && recordingMode !== "click") {
+      // Single click triggered -> continuous click dictation
+      setRecordingMode("click");
+      voiceRecognizer.start({
+        onInterimText: (t) => {
+          setDraft(t);
+        },
+        onEnd: () => {
+          setRecordingMode(null);
+        },
+        onError: (msg) => {
+          setSttNotice(msg);
+          setRecordingMode(null);
+          setTimeout(() => setSttNotice(null), 4000);
+        },
+      });
+    }
+  };
+
+  const handleMicPointerCancel = () => {
+    if (holdTimerRef.current) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (recordingMode === "hold") {
+      voiceRecognizer.cancel();
+      setRecordingMode(null);
+      setRecordedText("");
+      setIsCanceling(false);
+    }
   };
 
   const lastAssistantMsg = [...messages].reverse().find((m) => m.role === "assistant" && m.content.trim())?.content || "";
@@ -131,6 +238,28 @@ export function ChatScreen() {
         </div>
       )}
 
+      {/* STT / Voice Notice */}
+      {sttNotice && (
+        <div className="stt-notice-toast" onClick={() => setSttNotice(null)}>
+          🎙️ {sttNotice}
+        </div>
+      )}
+
+      {/* Hold-to-talk full intercom HUD */}
+      {recordingMode === "hold" && (
+        <div className={`hold-intercom-hud ${isCanceling ? "canceling" : ""}`}>
+          <div className="intercom-anim-wave">
+            <span /><span /><span /><span /><span />
+          </div>
+          <div className="intercom-text">
+            {isCanceling ? "松开手指，取消发送" : (recordedText ? `“${recordedText}”` : "正在倾听你的声音…")}
+          </div>
+          <div className="intercom-hint">
+            {isCanceling ? "⚠️ 松开将取消发送" : "↑ 上滑取消 · 松开立即发送"}
+          </div>
+        </div>
+      )}
+
       <div className="composer">
         <div className="action-popover-wrapper">
           <button
@@ -161,13 +290,29 @@ export function ChatScreen() {
 
         <textarea
           value={draft}
-          placeholder={`跟${profile.name}说点什么…`}
+          placeholder={recordingMode === "click" ? "🔴 正在聆听您的说话内容…" : `跟${profile.name}说点什么…`}
           onChange={(e) => {
             setDraft(e.target.value);
             if (showActions) setShowActions(false);
           }}
           rows={1}
         />
+
+        <button
+          type="button"
+          className={`voice-record-btn ${recordingMode ? "recording" : ""}`}
+          onPointerDown={handleMicPointerDown}
+          onPointerMove={handleMicPointerMove}
+          onPointerUp={handleMicPointerUp}
+          onPointerCancel={handleMicPointerCancel}
+          title={recordingMode === "click" ? "点击停止语音转文字" : "语音对讲（长按对讲立即发送 / 单击开启连续语音转文字）"}
+        >
+          {recordingMode === "click" ? (
+            <span className="mic-recording-dot">🔴</span>
+          ) : (
+            <span>🎙️</span>
+          )}
+        </button>
 
         <button
           type="button"

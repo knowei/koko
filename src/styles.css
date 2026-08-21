@@ -2117,5 +2117,162 @@ body {
   color: #ffffff;
 }
 
+/* ============================================================
+   Voice Input & Hold-to-Talk Intercom
+   ============================================================ */
+.voice-record-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  transition: all 0.15s ease;
+  flex: none;
+}
+
+.voice-record-btn:hover {
+  border-color: var(--pink);
+  background: #fff8fa;
+}
+
+.voice-record-btn.recording {
+  background: #ffe8ee;
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(224, 114, 137, 0.25);
+  animation: pulseRec 1.2s infinite;
+}
+
+@keyframes pulseRec {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+.mic-recording-dot {
+  font-size: 14px;
+  animation: blinkDot 0.8s infinite alternate;
+}
+
+@keyframes blinkDot {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+/* Floating Hold-to-Talk Intercom HUD */
+.hold-intercom-hud {
+  position: absolute;
+  bottom: 66px;
+  left: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, rgba(255, 248, 250, 0.96), rgba(253, 238, 242, 0.98));
+  border: 1.5px solid var(--pink-soft);
+  border-radius: 16px;
+  padding: 12px 16px;
+  box-shadow: 0 10px 28px rgba(224, 114, 137, 0.28);
+  backdrop-filter: blur(8px);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: intercomPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes intercomPop {
+  from { transform: translateY(10px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.hold-intercom-hud.canceling {
+  background: linear-gradient(135deg, rgba(254, 238, 238, 0.96), rgba(254, 226, 226, 0.98));
+  border-color: #f98080;
+  box-shadow: 0 10px 28px rgba(224, 36, 36, 0.22);
+}
+
+.intercom-anim-wave {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+}
+
+.intercom-anim-wave span {
+  width: 3.5px;
+  background: var(--pink);
+  border-radius: 2px;
+  animation: intercomWaveBar 0.8s ease-in-out infinite alternate;
+}
+
+.hold-intercom-hud.canceling .intercom-anim-wave span {
+  background: #e02424;
+}
+
+.intercom-anim-wave span:nth-child(1) { height: 6px; animation-delay: 0s; }
+.intercom-anim-wave span:nth-child(2) { height: 16px; animation-delay: 0.15s; }
+.intercom-anim-wave span:nth-child(3) { height: 22px; animation-delay: 0.3s; }
+.intercom-anim-wave span:nth-child(4) { height: 14px; animation-delay: 0.45s; }
+.intercom-anim-wave span:nth-child(5) { height: 8px; animation-delay: 0.6s; }
+
+@keyframes intercomWaveBar {
+  0% { height: 4px; }
+  100% { height: 20px; }
+}
+
+.intercom-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: center;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hold-intercom-hud.canceling .intercom-text {
+  color: #9b1c1c;
+}
+
+.intercom-hint {
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.hold-intercom-hud.canceling .intercom-hint {
+  color: #c81e1e;
+  font-weight: 600;
+}
+
+.stt-notice-toast {
+  position: absolute;
+  bottom: 66px;
+  left: 14px;
+  right: 14px;
+  background: #fff8f8;
+  border: 1px solid #f8b4b4;
+  color: #9b1c1c;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  z-index: 24;
+  animation: fadeInNotice 0.2s ease-out;
+}
+
+@keyframes fadeInNotice {
+  from { transform: translateY(4px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+
 
 
