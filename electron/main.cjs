@@ -63,7 +63,7 @@ async function createWindow() {
   const devServerUrl = 'http://localhost:5174/';
   const isDevReady = await waitForServer('http://localhost:5174/');
 
-  if (isDevReady) {
+  if (!app.isPackaged && isDevReady) {
     mainWindow.loadURL(devServerUrl);
   } else {
     const indexPath = path.join(__dirname, '../dist/index.html');
