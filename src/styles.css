@@ -2409,34 +2409,53 @@ body {
   position: absolute;
   top: 4px;
   right: 12px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--pink-soft);
   border-radius: 6px;
-  padding: 2px 5px;
+  padding: 2px 6px;
   font-size: 12px;
   color: var(--ink-soft);
-  opacity: 0.6;
-  z-index: 10;
-  transition: opacity 0.15s;
+  opacity: 0;
+  transform: translateY(-4px);
+  z-index: 15;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
 }
 
-.pet-character-wrap:hover .pet-drag-handle {
+.desktop-pet-container:hover .pet-drag-handle {
+  opacity: 0.85;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.pet-drag-handle:hover {
   opacity: 1;
 }
 
 .pet-emotion-badge {
   position: absolute;
-  top: 10px;
-  left: 12px;
-  background: #ffffff;
+  top: 8px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--pink-soft);
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 11px;
   font-weight: 600;
   color: var(--pink);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-  z-index: 10;
+  box-shadow: 0 2px 8px rgba(224, 114, 137, 0.15);
+  z-index: 15;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.desktop-pet-container:hover .pet-emotion-badge {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .pet-sprite {
@@ -2494,17 +2513,6 @@ body {
   width: 110px;
   height: 50px;
   border-radius: 20px;
-}
-
-/* Pet Controls Dock */
-.pet-controls-bar {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1.5px solid var(--pink-soft);
-  border-radius: 999px;
-  padding: 4px 8px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
 }
 
 /* Radar Scan HUD */
@@ -2614,7 +2622,7 @@ body {
   color: var(--pink);
 }
 
-/* Ultra-Sleek Frosted Glass Capsule Dock */
+/* Ultra-Sleek Frosted Glass Capsule Dock (Auto-hidden when idle, fades in on hover) */
 .pet-controls-bar {
   display: flex;
   align-items: center;
@@ -2627,9 +2635,21 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 999px;
   box-shadow: 0 8px 24px rgba(180, 120, 110, 0.22), 0 2px 6px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   margin-top: 4px;
   z-index: 20;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.desktop-pet-container:hover .pet-controls-bar,
+.desktop-pet-container:focus-within .pet-controls-bar,
+.pet-controls-bar:hover,
+.pet-controls-bar.show-always {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .pet-ctrl-btn {

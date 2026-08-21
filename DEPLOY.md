@@ -1,67 +1,158 @@
-# Docker 部署
+# 可可 · 部署与模型配置指南
 
-项目使用当前 Docker Compose 格式，并包含 PostgreSQL、应用健康检查和自动建表。签到、事件奖励、商城钱包及资产数据保存在 `koko-postgres-data` 命名卷中。
+本项目采用**全栈动静一体化架构**：单个 Node/Express 容器即可同时托管 Web 网页（手机/电脑端）并为 Windows 桌面端提供统一的 `/api/*` 后端接口（包含大模型流式对话、Edge-TTS 神经网络语音、视觉看图感知与云存档）。
 
-## 首次部署
+---
 
-把 `ai-companion` 整个目录上传到服务器，例如 `/opt/koko`：
+## 🐳 服务端 Docker 一键部署
+
+### 1. 首次部署
+
+在服务器上进入目录（如 `~/app/ai-companion`）：
 
 ```bash
-cd /opt/koko
+cd ~/app/ai-companion
+
+# 复制环境变量模板
 cp .env.example .env
+
+# 生成安全的随机密码与密钥并写入 .env
 nano .env
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh
 ```
 
-`.env` 中必须修改 `POSTGRES_PASSWORD` 和 `AUTH_SECRET`。推荐生成方式：
-
-```bash
-openssl rand -base64 24 | tr -dc 'A-Za-z0-9'
-openssl rand -hex 32
-```
-
-脚本同时兼容 `docker compose` 和旧版 `docker-compose`，但推荐使用新版 Compose 插件。
-
-访问 `http://服务器公网IP:8080`。服务器安全组和防火墙需要放行 TCP 8080。
-
-不配置 `ANTHROPIC_API_KEY` 时，默认供应商使用回声模式；用户仍可在设置中填写自己的 DeepSeek/OpenAI Key。生产模式只允许 HTTPS 接口，并通过 `ALLOWED_PROVIDER_HOSTS` 限制可代理的供应商域名。追加域名示例：
-
+`.env` 必备字段说明：
 ```env
-ALLOWED_PROVIDER_HOSTS=api.openai.com,api.deepseek.com,dashscope.aliyuncs.com,api.example.com
+# 端口设置（宿主机映射端口，默认 8080）
+APP_PORT=8080
+
+# 数据库密码与认证密钥（必须修改）
+POSTGRES_PASSWORD=your_strong_postgres_password
+AUTH_SECRET=your_32_byte_hex_secret
+
+# 生产环境允许代理的 AI 模型供应商域名（逗号分隔）
+ALLOWED_PROVIDER_HOSTS=api.openai.com,api.deepseek.com,dashscope.aliyuncs.com,open.bigmodel.cn,api.siliconflow.cn
 ```
 
-## 更新
-
-上传新代码后仍执行同一个脚本：
+### 2. 启动服务
 
 ```bash
-cd /opt/koko
-./scripts/deploy.sh
+# 构建并启动容器（PostgreSQL 数据库 + Web/API 全栈应用）
+docker compose up -d --build
 ```
 
-更新前脚本会把数据库备份到 `backups/koko-日期-时间.sql.gz`，随后检查配置、拉取 PostgreSQL 基础镜像、重建应用并等待健康检查。数据库命名卷不会因重建容器而删除；不要运行 `docker compose down -v`。
-
-## 日志与状态
+### 3. 验证部署状态
 
 ```bash
-docker compose logs -f --tail=200
+# 查看容器健康状态
 docker compose ps
+
+# 检查后端健康检查接口（返回 JSON 即表示完全正常）
 curl http://127.0.0.1:8080/api/health
 ```
 
-如果 `.env` 修改了 `APP_PORT`，请把示例中的 `8080` 换成对应端口。部署失败时脚本会自动显示应用与数据库的最近日志。
+---
 
-## 恢复数据库备份
+## 🌐 桌面端（Windows 客户端）如何连接云服务端
 
-先确认备份文件名，再执行：
+桌面客户端（Windows `.exe`）内置了智能 `apiUrl()` 地址解析器，支持两种直连方式：
 
+### 方式 1：客户端界面直接填写（免打包 · 随时切换）
+1. 启动桌面端 `可可陪伴.exe`；
+2. 点击右上角 **`⚙ 设置`**，滑动到最下方；
+3. 在 **「🌐 云端服务器后端地址」** 输入您的服务器公网地址：
+   - 例如：`http://111.231.79.218:8080` 或已绑定域名的 `https://api.yourdomain.com`；
+4. 点击 **保存**，桌面端即可全功能直连您的云端服务器！
+
+### 方式 2：打包时固化默认服务器地址
+在打包客户端前，在本地 `ai-companion/` 目录下创建 `.env.production`：
+```env
+VITE_SERVER_URL=http://你的服务器IP:8080
+```
+执行打包命令后，生成的 `.exe` 打开即默认连向该服务器：
 ```bash
-gunzip -c backups/koko-20260819-120000.sql.gz | docker compose exec -T postgres psql -U koko -d koko
+npm run build:desktop
 ```
 
-恢复会修改现有数据，应仅在确认需要回滚时执行。
+---
 
-## HTTPS
+## 🤖 模型配置指南（主聊天模型 + 独立识图模型 + 巡航保活）
 
-IP + HTTP 仅用于个人测试。HTTP 会暴露用户填写的 API Key 和聊天内容，不应直接提供给公众。正式上线应准备域名，并在容器前增加 Caddy、Traefik 或 Nginx 申请可信证书；不建议让用户忽略自签名证书警告。
+为了实现**极高性价比与顶级人设表达**，系统支持**双模型协同流水线（Two-Stage Vision Pipeline）**：
+
+```
+┌─────────────────┐       ┌───────────────────────────────┐       ┌───────────────────────────────┐
+│  屏幕截图/摄像头  │ ────► │  Stage 1: 视觉模型 (多模态)    │ ────► │  Stage 2: 主模型 (纯文本高智商) │
+│  (桌面或战况)   │       │  提取客观事实/代码行数/游戏局势 │       │  注入可可性格台词与情感回复   │
+└─────────────────┘       └───────────────────────────────┘       └───────────────────────────────┘
+```
+
+### 1. 主聊天模型（Main Chat Model）推荐
+负责日常对话、情感陪伴、日记与记忆生成：
+
+| 供应商 | 推荐模型 | 接口地址 Base URL | 特点 |
+| :--- | :--- | :--- | :--- |
+| **DeepSeek** | `deepseek-chat` (DeepSeek-V3) | `https://api.deepseek.com` | 性价比极高、中文语感好、逻辑强大 |
+| **DeepSeek** | `deepseek-reasoner` (DeepSeek-R1) | `https://api.deepseek.com` | 深度思考、推理缜密 |
+| **阿里云百炼** | `qwen-plus` / `qwen-max` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 阿里云通义千问大模型系列 |
+| **OpenAI** | `gpt-4o-mini` | `https://api.openai.com/v1` | 极速响应、稳定全面 |
+
+---
+
+### 2. 独立视觉看图模型（Vision Perception Model）推荐
+专门负责看懂您屏幕上的代码编辑器、游戏界面（王者/LOL/原神等）或浏览器内容：
+
+| 方案 | 供应商 | 接口地址 Base URL | 模型名 Model | 成本优势 |
+| :--- | :--- | :--- | :--- | :--- |
+| **方案 A（首选 · 免费）** | **智谱 AI (GLM)** | `https://open.bigmodel.cn/api/paas/v4` | `glm-4v-flash` | **完全免费调用！** 响应极快，非常适合自动巡航 |
+| **方案 B（推荐 · 极便宜）** | **阿里云百炼 (通义)** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-vl-plus` | 百万 Token 仅需 1.5 元（带新用户数百万免费额度） |
+| **方案 C（高性能）** | **OpenAI** | `https://api.openai.com/v1` | `gpt-4o-mini` | 国际通用多模态视觉模型 |
+
+---
+
+### 3. 如何在可可设置中配置双模型：
+
+1. 打开可可「⚙️ 设置」面板；
+2. **【基础模型】**：
+   - 模式选择：`自定义接口`
+   - 接口地址：填写您的主模型地址（如 `https://api.deepseek.com`）
+   - API Key：填写您的主模型 Key
+   - 模型名：`deepseek-chat`
+3. **【👁️ 独立看图 / 视觉识别模型】**：
+   - 勾选：`开启独立看图模型配置`
+   - 视觉接口地址：`https://open.bigmodel.cn/api/paas/v4`（或阿里百炼）
+   - 视觉 API Key：填写对应的 Key
+   - 视觉模型名：`glm-4v-flash`（或 `qwen-vl-plus`）
+4. 点击 **保存**！
+
+---
+
+### 4. 屏幕巡航与保活机制（Patrol & Keep-Alive）
+
+在桌面悬浮桌宠模式中：
+- **`👁️ 看屏幕` 按钮**：单次主动截屏分析当前活动（识别写代码、刷网页或打游戏，并由可可即时发起吐槽或关心）；
+- **`⏱️ 巡航` 按钮**：开启后，可可将每隔 **20 秒** 在后台自动巡航看一次屏幕，发现写代码报错、游戏顺逆风或熬夜时**主动开口搭话**；
+- **免打扰与休眠保活**：
+  - 鼠标未悬停时，底栏控制按钮与抓手**全自动淡出隐藏**，保持桌面 100% 极简纯粹；
+  - 鼠标移入可可身旁时，多功能胶囊底栏与打字/对讲按钮**即时平滑浮现**。
+
+---
+
+## 🔒 Nginx 反向代理配置（可选域名与 HTTPS）
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    # 代理所有前端静态文件与 API 请求
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```

@@ -430,8 +430,8 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
         </form>
       )}
 
-      {/* Sleek Floating Capsule Controls Dock */}
-      <div className="pet-controls-bar">
+      {/* Sleek Floating Capsule Controls Dock (Auto-hidden when idle, visible on hover) */}
+      <div className={`pet-controls-bar ${showTextInput || isRecording || isAutoPatrol || isAnalyzing ? "show-always" : ""}`}>
         {window.electronAPI?.isElectron ? (
           <button
             type="button"
