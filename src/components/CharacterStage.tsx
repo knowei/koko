@@ -82,10 +82,12 @@ export function CharacterStage() {
     }, 2000);
   };
 
+  const companionName = profile.name || "妹妹";
+
   return (
     <section
       className={`character-stage ${previewSkin ? "in-preview" : ""}`}
-      aria-label={`${profile.name}的角色立绘`}
+      aria-label={`${companionName}的角色立绘`}
       data-character-mode="animated-sprite-fallback"
       style={{ "--look-x": 0, "--look-y": 0 } as CSSProperties}
       onPointerMove={move}
@@ -104,13 +106,13 @@ export function CharacterStage() {
           className="character-touch"
           type="button"
           onClick={handleTouch}
-          aria-label={`和${profile.name}互动`}
+          aria-label={`和${companionName}互动`}
         >
           <img
             key={`${expression}-${currentSkin}`}
             className="character-sprite character-breathing"
             src={`./assets/character/koko-${expression}${skinSuffix}.png`}
-            alt={`长银发、神情${expressionNames[expression]}的${profile.name}`}
+            alt={`长银发、神情${expressionNames[expression]}的${companionName}`}
           />
         </button>
 
@@ -134,7 +136,7 @@ export function CharacterStage() {
       </div>
       <div className="character-caption">
         <span className="presence-dot" />
-        {profile.name}就在这里
+        {companionName}就在这里
       </div>
     </section>
   );

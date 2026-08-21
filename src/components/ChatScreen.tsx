@@ -266,7 +266,7 @@ export function ChatScreen() {
             type="button"
             className={`action-popover-btn ${showActions ? "active" : ""}`}
             onClick={() => setShowActions(!showActions)}
-            title={`和${profile.name}的互动动作`}
+            title={`和${profile.name || "妹妹"}的互动动作`}
           >
             💖
           </button>
@@ -290,7 +290,7 @@ export function ChatScreen() {
 
         <textarea
           value={draft}
-          placeholder={recordingMode === "click" ? "🔴 正在聆听您的说话内容…" : `跟${profile.name}说点什么…（Enter 发送，Shift+Enter 换行）`}
+          placeholder={recordingMode === "click" ? "🔴 正在聆听您的说话内容…" : `跟${profile.name || "妹妹"}说点什么…（Enter 发送，Shift+Enter 换行）`}
           onChange={(e) => {
             setDraft(e.target.value);
             if (showActions) setShowActions(false);

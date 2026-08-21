@@ -45,7 +45,7 @@ export function MemoryScreen() {
           <span>📖</span>
           <h2>我们的回忆手账</h2>
         </div>
-        <p>{profile.name}会把重要的话、每天发生的点滴与珍贵瞬间认真收藏起来。</p>
+        <p>{profile.name || "妹妹"}会把重要的话、每天发生的点滴与珍贵瞬间认真收藏起来。</p>
       </header>
 
       {/* Sub-Tabs: Scrapbook Diary vs Polaroid Gallery */}
@@ -149,7 +149,7 @@ export function MemoryScreen() {
             </div>
             <div className="agreement-list">
               {agreements.length === 0 && (
-                <div className="empty-memory">聊天里说“明天提醒我”“下次一起去……”时，可可也会自动记在这里。</div>
+                <div className="empty-memory">聊天里说“明天提醒我”“下次一起去……”时，{profile.name || "妹妹"}也会自动记在这里。</div>
               )}
               {[...agreements].reverse().map((agreement) => (
                 <article key={agreement.id} className={`agreement-item ${agreement.status}`}>
@@ -206,7 +206,7 @@ export function MemoryScreen() {
             <section className="memory-page-card">
               <div className="tape-strip yellow-tape" />
               <div className="memory-page-title">
-                <strong>可可记得你</strong>
+                <strong>{profile.name || "妹妹"}记得你</strong>
                 <span>{memories.length}/50</span>
               </div>
               <div className="memory-editor">
@@ -242,7 +242,7 @@ export function MemoryScreen() {
             <section className="memory-page-card diary-page">
               <div className="tape-strip blue-tape" />
               <div className="memory-page-title">
-                <strong>{profile.name}的心情日记</strong>
+                <strong>{profile.name || "妹妹"}的心情日记</strong>
                 <span>{diaries.length} 篇</span>
               </div>
               <button

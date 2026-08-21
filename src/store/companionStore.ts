@@ -640,6 +640,7 @@ export const useStore = create<State>()(
         if (get().streaming) return "等我把话说完再送嘛~";
         const t = todayStr();
         const s = get();
+        const companionName = s.profile.name || "妹妹";
         if ((s.inventory[id] ?? 0) <= 0) return `背包里没有${gift.name}，先去商城兑换吧~`;
         const giftsToday = s.lastGiftDate === t ? s.giftsToday : 0;
         if (giftsToday >= 3) return "今天已经收到好多礼物啦，明天再宠我好不好~";
@@ -650,7 +651,7 @@ export const useStore = create<State>()(
           lastGiftDate: t,
           giftsToday: giftsToday + 1,
           inventory: { ...s.inventory, [id]: Number(data.quantity) || 0 },
-          experiences: [...s.experiences, { id: uid(), title: `送给${s.profile.name}一份礼物`, detail: `${gift.emoji} ${gift.name}`, kind: "gift" as const, ts: Date.now() }].slice(-100),
+          experiences: [...s.experiences, { id: uid(), title: `送给${companionName}一份礼物`, detail: `${gift.emoji} ${gift.name}`, kind: "gift" as const, ts: Date.now() }].slice(-100),
           messages: [
             ...s.messages,
             {
@@ -670,11 +671,13 @@ export const useStore = create<State>()(
         const outing = OUTINGS.find((item) => item.id === id);
         if (!outing) return null;
         const state = get();
-        if (state.streaming) return "等可可说完再出门嘛~";
+        const companionName = state.profile.name || "妹妹";
+        const userNickname = state.profile.userNickname || "哥哥";
+        if (state.streaming) return `等${companionName}说完再出门嘛~`;
         if (state.affinity < outing.minAffinity) return `亲密度 ${outing.minAffinity} 才能解锁哦`;
         const today = todayStr();
         if (state.lastOutingDate === today) return "今天已经一起出过门啦，明天再去别的地方吧~";
-        const wished = preferredOuting(state.affinity, state.profile.name);
+        const wished = preferredOuting(state.affinity, companionName);
         const matchedWish = wished.id === outing.id;
         const affinityReward = matchedWish ? outing.affinity * 2 : outing.affinity;
         set({
@@ -685,8 +688,8 @@ export const useStore = create<State>()(
           }].slice(-100),
           messages: [...state.messages, {
             id: uid(), role: "user", ts: Date.now(), kind: "event",
-            content: `今天和可可去了${outing.name}${outing.emoji}${matchedWish ? ` · 心有灵犀，好感奖励 ×2（+${affinityReward}）` : ""}`,
-            hiddenPrompt: `今天和哥哥去了${outing.name}。${matchedWish ? "这正是你今天最想去的地方，表现出惊喜和心有灵犀的开心。" : ""}${outing.prompt}。直接以可可的口吻回应，不要解释任务。`,
+            content: `今天和${companionName}去了${outing.name}${outing.emoji}${matchedWish ? ` · 心有灵犀，好感奖励 ×2（+${affinityReward}）` : ""}`,
+            hiddenPrompt: `今天和${userNickname}去了${outing.name}。${matchedWish ? "这正是你今天最想去的地方，表现出惊喜和心有灵犀的开心。" : ""}${outing.prompt}。直接以${companionName}的口吻回应，不要解释任务。`,
           }],
         });
         void get()._runTurn({ affinity: affinityReward, mood: outing.mood }).then(() => get().maybeTriggerEvent("outing"));
@@ -713,7 +716,8 @@ export const useStore = create<State>()(
       equipSkin: (id) => {
         if (!get().unlockedSkins.includes(id)) return "还没有解锁这套衣服";
         set({ activeSkin: id });
-        return id === "green" ? "可可换上了薄荷绿裙" : "可可换回了浅蓝裙";
+        const companionName = get().profile.name || "妹妹";
+        return id === "green" ? `${companionName}换上了薄荷绿裙` : `${companionName}换回了浅蓝裙`;
       },
 
       maybeTriggerEvent: async (source) => {
@@ -745,6 +749,7 @@ export const useStore = create<State>()(
         const reward = Number(data.amount) || 0;
         const affinity = clamp(state.affinity + choice.affinity);
         const unlocked = MILESTONES.filter((item) => affinity >= item.affinity && !state.unlockedMilestones.includes(item.id));
+        const companionName = state.profile.name || "妹妹";
         set((s) => ({
           pendingEvent: null,
           pendingEventInstanceId: null,
@@ -759,7 +764,7 @@ export const useStore = create<State>()(
           messages: [...s.messages, {
             id: uid(), role: "user", ts: Date.now(), kind: "event",
             content: `${event.emoji} ${event.title} · ${choice.result} · 获得 ${reward} 心愿星`,
-            hiddenPrompt: `刚刚发生了“${event.title}”：${choice.result}。请以可可的口吻自然回应这段经历。`,
+            hiddenPrompt: `刚刚发生了“${event.title}”：${choice.result}。请以${companionName}的口吻自然回应这段经历。`,
           }, ...unlocked.map((item) => ({ id: uid(), role: "assistant" as const, content: item.text, ts: Date.now(), kind: "milestone" as const }))],
         }));
         void get()._runTurn();

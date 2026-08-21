@@ -50,13 +50,13 @@ export function SidePanel() {
       </button>
 
       <div className="personality-card">
-        <span>现在的可可</span>
+        <span>现在的{profileName || "妹妹"}</span>
         <strong>{personalityLabel(personality, affinity)}</strong>
         <small>性格会随着你们的聊天慢慢变化</small>
       </div>
 
       <div className="side-block">
-        <div className="side-title">可可记得你</div>
+        <div className="side-title">{profileName || "妹妹"}记得你</div>
         <div className="memory-add">
           <select value={memoryKind} onChange={(e) => setMemoryKind(e.target.value as MemoryKind)} aria-label="记忆类型">
             <option value="name">名字</option><option value="preference">喜好</option>
@@ -90,8 +90,8 @@ export function SidePanel() {
       </div>
 
       <div className="side-block">
-        <div className="side-title">和可可出门</div>
-        <div className="locked-hint">💭 {profileName}今天想去：{wishedOuting.name} · 选中时好感 ×2</div>
+        <div className="side-title">和{profileName || "妹妹"}出门</div>
+        <div className="locked-hint">💭 {profileName || "妹妹"}今天想去：{wishedOuting.name} · 选中时好感 ×2</div>
         <div className="outings">
           {OUTINGS.map((outing) => {
             const locked = affinity < outing.minAffinity;
@@ -116,7 +116,7 @@ export function SidePanel() {
       </div>
 
       <div className="side-block">
-        <div className="side-title">送点小礼物</div>
+        <div className="side-title">送给{profileName || "妹妹"}的小礼物</div>
         <div className="gifts">
           {GIFTS.map((g) => (
             <button

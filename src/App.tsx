@@ -69,6 +69,10 @@ export default function App() {
     }
   }, [isMiniCompanion]);
 
+  useEffect(() => {
+    document.title = `${profile.name || "妹妹"} · 伴侣陪伴`;
+  }, [profile.name]);
+
   const lv = affinityLevel(affinity);
   const routine = getRoutine(now.getHours());
   const currentTime = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -149,7 +153,7 @@ export default function App() {
         <header className="topbar">
           <div className="who">
             <div className="avatar-header-box">
-              <Avatar name={profile.name} skin={activeSkin} size={54} />
+              <Avatar name={profile.name || "妹妹"} skin={activeSkin} size={54} />
               {currentExpression !== "normal" && (
                 <div
                   className="avatar-expression-badge"
@@ -161,7 +165,7 @@ export default function App() {
               )}
             </div>
             <div className="who-text">
-              <div className="who-name">{profile.name}</div>
+              <div className="who-name">{profile.name || "妹妹"}</div>
               <div className="routine-inline">{currentTime} · {routine.emoji} {routine.label}</div>
               <div className="who-sub" style={{ color: lv.color }}>
                 {lv.name} · {personalityLabel(personality, affinity)} · 心情 {moodLabel(mood)}

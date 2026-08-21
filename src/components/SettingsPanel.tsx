@@ -163,7 +163,7 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
     setApiBaseUrl(serverUrl);
     setReplyStyle(style);
     setProfile({
-      name: name.trim() || "可可",
+      name: name.trim() || "妹妹",
       age: Math.max(18, Math.min(99, Number(age) || 18)),
       birthday,
       userNickname: userNickname.trim() || "哥哥",
@@ -226,10 +226,10 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
 
         <div className="settings-section-title">角色档案</div>
         <div className="profile-grid">
-          <label className="fld"><span>妹妹的名字</span><input maxLength={12} value={name} onChange={(e) => setName(e.target.value)} /></label>
+          <label className="fld"><span>伴侣名字</span><input maxLength={12} value={name} onChange={(e) => setName(e.target.value)} placeholder="未设置时默认：妹妹" /></label>
           <label className="fld"><span>年龄（仅限成年）</span><input type="number" min={18} max={99} value={age} onChange={(e) => setAge(e.target.value)} /></label>
           <label className="fld"><span>生日</span><input type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} /></label>
-          <label className="fld"><span>她怎么称呼你</span><input maxLength={12} value={userNickname} onChange={(e) => setUserNickname(e.target.value)} /></label>
+          <label className="fld"><span>她怎么称呼你</span><input maxLength={12} value={userNickname} onChange={(e) => setUserNickname(e.target.value)} placeholder="默认：哥哥" /></label>
         </div>
 
         <div className="settings-section-title provider-title">声音与语音</div>
@@ -247,7 +247,7 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
               <div className="toggle-row">
                 <div>
                   <strong>自动朗读回复</strong>
-                  <div className="fld-note">{name}回复完成后自动播报</div>
+                  <div className="fld-note">{name || "妹妹"}回复完成后自动播报</div>
                 </div>
                 <input type="checkbox" checked={ttsAutoPlay} onChange={(e) => setTtsAutoPlay(e.target.checked)} />
               </div>
@@ -347,7 +347,7 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
 
               <div className="save-actions" style={{ marginTop: "10px" }}>
                 <button className="mini-btn" type="button" disabled={ttsTesting} onClick={testVoice}>
-                  {ttsTesting ? "正在合成…" : `🎧 试听${name}的声音`}
+                  {ttsTesting ? "正在合成…" : `🎧 试听${name || "妹妹"}的声音`}
                 </button>
               </div>
             </>
@@ -405,7 +405,7 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
         </div>
         {saveNotice && <div className="fld-note">{saveNotice}</div>}
 
-        <div className="settings-section-title">可可的回复方式</div>
+        <div className="settings-section-title">{name || "妹妹"}的回复方式</div>
         <div className="style-options">
           {([
             ["daily", "日常", "短对话为主，偶尔有动作"],

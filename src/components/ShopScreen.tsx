@@ -3,6 +3,8 @@ import { GIFTS, SHOP_PRODUCTS } from "@/data/persona";
 import { useStore } from "@/store/companionStore";
 
 export function ShopScreen() {
+  const profile = useStore((state) => state.profile);
+  const companionName = profile.name || "妹妹";
   const points = useStore((state) => state.points);
   const inventory = useStore((state) => state.inventory);
   const unlockedSkins = useStore((state) => state.unlockedSkins);
@@ -53,7 +55,7 @@ export function ShopScreen() {
     if (err) {
       flash(err);
     } else {
-      flash(`已成功送给可可一份「${giftName}」🎁`);
+      flash(`已成功送给${companionName}一份「${giftName}」🎁`);
     }
   };
 
@@ -62,7 +64,7 @@ export function ShopScreen() {
       <div className="shop-header">
         <div>
           <h2>心愿商城</h2>
-          <p>在这里兑换礼物与心仪装扮，给可可更多惊喜吧</p>
+          <p>在这里兑换礼物与心仪装扮，给{companionName}更多惊喜吧</p>
         </div>
         <div className="shop-balance">
           <span>心愿星余额</span>
@@ -86,7 +88,7 @@ export function ShopScreen() {
           {/* Base skin: blue */}
           <article className={`skin-card ${activeSkin === "blue" ? "equipped" : ""} ${previewSkin === "blue" ? "previewing" : ""}`}>
             <div className="skin-preview">
-              <img src="./assets/character/koko-base.png" alt="可可的浅蓝长裙" />
+              <img src="./assets/character/koko-base.png" alt={`${companionName}的浅蓝长裙`} />
             </div>
             <div className="skin-info">
               <strong>浅蓝长裙</strong>
@@ -113,7 +115,7 @@ export function ShopScreen() {
             return (
               <article key={product.id} className={`skin-card ${equipped ? "equipped" : ""} ${isPreviewing ? "previewing" : ""}`}>
                 <div className="skin-preview mint">
-                  <img src="./assets/character/koko-base-green.png" alt="可可的薄荷绿裙" />
+                  <img src="./assets/character/koko-base-green.png" alt={`${companionName}的薄荷绿裙`} />
                 </div>
                 <div className="skin-info">
                   <strong>{product.name}</strong>

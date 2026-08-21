@@ -11,14 +11,16 @@ interface DesktopPetWidgetProps {
   isPipWindow?: boolean;
 }
 
-const TOUCH_REACTIONS = [
-  { action: "pat", text: "（眯起眼睛蹭蹭你的手心）最喜欢哥哥摸摸头啦~", voice: "最喜欢哥哥摸摸头啦~", expr: "blush" },
+const getTouchReactions = (name: string, userNickname: string) => [
+  { action: "pat", text: `（眯起眼睛蹭蹭你的手心）最喜欢${userNickname}摸摸头啦~`, voice: `最喜欢${userNickname}摸摸头啦~`, expr: "blush" },
   { action: "poke", text: "（鼓起腮帮子轻轻拍开）呜…干嘛突然戳人家脸蛋啦，会变胖的！", voice: "干嘛突然戳人家脸蛋啦，会变胖的！", expr: "pout" },
-  { action: "hand", text: "（轻轻握住你的手）哥哥的手好温暖，可可一直陪着你哦。", voice: "哥哥的手好温暖，可可一直陪着你哦。", expr: "shy" },
+  { action: "hand", text: `（轻轻握住你的手）${userNickname}的手好温暖，${name}一直陪着你哦。`, voice: `${userNickname}的手好温暖，${name}一直陪着你哦。`, expr: "shy" },
 ];
 
 export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps) {
   const profile = useStore((s) => s.profile);
+  const companionName = profile.name || "妹妹";
+  const userNickname = profile.userNickname || "哥哥";
   const activeSkin = useStore((s) => s.activeSkin);
   const mood = useStore((s) => s.mood);
   const affinity = useStore((s) => s.affinity);
@@ -33,7 +35,7 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
   // States
   const [useLive2D, setUseLive2D] = useState(true);
   const [currentBubbleText, setCurrentBubbleText] = useState<string>(
-    `（晃着小腿坐着）哥哥今天玩什么游戏或者在忙什么呀？可可在旁边陪着你哦~`
+    () => `（晃着小腿坐着）${userNickname}今天玩什么游戏或者在忙什么呀？${companionName}在旁边陪着你哦~`
   );
   const [currentExpr, setCurrentExpr] = useState<"smile" | "blush" | "shy" | "pout" | "sleepy" | "surprised">("smile");
   const [isScreenSharing, setIsScreenSharing] = useState(screenVision.isSharing());
@@ -111,7 +113,8 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
   const handleTouch = (type: "head" | "cheek" | "hand") => {
     if (hasDraggedRef.current) return;
     const idx = type === "head" ? 0 : type === "cheek" ? 1 : 2;
-    const item = TOUCH_REACTIONS[idx];
+    const reactions = getTouchReactions(companionName, userNickname);
+    const item = reactions[idx];
     triggerBubbleSpeech(item.text, item.expr as any);
   };
 
@@ -260,7 +263,7 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
         onFinalText: (text) => {
           setIsRecording(false);
           if (text.trim()) {
-            triggerBubbleSpeech(`（收到哥哥的话：“${text}”）思考中…`, "smile");
+            triggerBubbleSpeech(`（收到${userNickname}的话：“${text}”）思考中…`, "smile");
             void send(text.trim());
           }
         },
@@ -280,7 +283,7 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
     if (!text || streaming) return;
     setTextDraft("");
     setShowTextInput(false);
-    triggerBubbleSpeech(`（收到哥哥的话：“${text}”）思考中…`, "shy");
+    triggerBubbleSpeech(`（收到${userNickname}的话：“${text}”）思考中…`, "shy");
     await send(text);
   };
 
