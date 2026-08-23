@@ -181,76 +181,115 @@ export default function App() {
             </div>
           </div>
           <div className="top-actions">
-            <button
-              className="ghost-btn pet-top-btn"
-              title="切换为桌面悬浮陪伴小窗（置顶陪伴/实时看游戏战况）"
-              onClick={() => {
-                if (window.electronAPI) {
-                  window.electronAPI.switchWindowMode("mini");
-                } else {
-                  setShowPetWidget(true);
-                }
-              }}
-            >
-              🌸 悬浮陪伴
-            </button>
-            <button
-              className="ghost-btn desktop-focus-btn"
-              title="番茄钟专注伴读与舒缓白噪音"
-              onClick={() => setShowFocusModal(true)}
-            >
-              🍅 专注
-            </button>
-            <button
-              className="ghost-btn desktop-life-btn"
-              title="喝水打卡与健康作息管家"
-              onClick={() => setShowLifeModal(true)}
-            >
-              💧 作息
-            </button>
-            <button
-              className="ghost-btn desktop-sticky-btn"
-              title="随手便签与待办清单"
-              onClick={() => setShowStickyModal(true)}
-            >
-              📌 便签
-            </button>
-            <button className="ghost-btn desktop-game-btn" onClick={() => setActiveView(activeView === "games" ? "chat" : "games")}>
-              {activeView === "games" ? "← 返回" : "🎮 娱乐"}
-            </button>
-            <button className="ghost-btn desktop-memory-btn" onClick={() => setActiveView(activeView === "memories" ? "chat" : "memories")}>
-              {activeView === "memories" ? "← 返回" : "📖 回忆"}
-            </button>
-            <button className="ghost-btn desktop-shop-btn" onClick={() => setActiveView(activeView === "shop" ? "chat" : "shop")}>
-              {activeView === "shop" ? "← 返回" : "✦ 商城"}
-            </button>
-            <button className="ghost-btn account-top-btn" title="账号与云同步" onClick={() => setShowAccount(true)}>
-              👤 {localStorage.getItem("koko-account-token") ? "已登录" : "登录"}
-            </button>
-            <button className="ghost-btn" title="设置供应商" onClick={() => setShowSettings(true)}>
-              ⚙ {provider.mode === "custom" ? "自定义" : "默认"}
-            </button>
-            <button
-              className="ghost-btn"
-              title="清空记忆重新开始"
-              onClick={() => {
-                if (confirm("重新开始会清空聊天、亲密度、心情、性格成长和外出记录，但会保留 API 设置。确定吗？")) resetMemory();
-              }}
-            >
-              ↺
-            </button>
+            {/* 1. Main View Navigation Pills */}
+            <div className="nav-pill-group" role="tablist">
+              <button
+                className={`top-nav-btn ${activeView === "chat" || activeView === "life" ? "active" : ""}`}
+                onClick={() => setActiveView("chat")}
+                title="返回伴侣聊天与互动主界面"
+              >
+                💬 陪伴
+              </button>
+              <button
+                className={`top-nav-btn ${activeView === "games" ? "active" : ""}`}
+                onClick={() => setActiveView(activeView === "games" ? "chat" : "games")}
+                title="双人娱乐坊（象棋、围棋、五子棋、翻牌等）"
+              >
+                🎮 娱乐
+                <span className="mini-badge-dot" />
+              </button>
+              <button
+                className={`top-nav-btn ${activeView === "memories" ? "active" : ""}`}
+                onClick={() => setActiveView(activeView === "memories" ? "chat" : "memories")}
+                title="回忆手账与用户画像档案"
+              >
+                📖 回忆
+              </button>
+              <button
+                className={`top-nav-btn ${activeView === "shop" ? "active" : ""}`}
+                onClick={() => setActiveView(activeView === "shop" ? "chat" : "shop")}
+                title="心愿商城与装扮"
+              >
+                ✦ 商城
+              </button>
+            </div>
+
+            {/* 2. Life & Focus Companion Quick Tools */}
+            <div className="tools-pill-group">
+              <button
+                className="tool-pill-btn pet-tool-btn"
+                title="切换为桌面悬浮陪伴小窗"
+                onClick={() => {
+                  if (window.electronAPI) {
+                    window.electronAPI.switchWindowMode("mini");
+                  } else {
+                    setShowPetWidget(true);
+                  }
+                }}
+              >
+                🌸 悬浮
+              </button>
+              <button
+                className="tool-pill-btn focus-tool-btn"
+                title="番茄钟专注伴读与舒缓白噪音"
+                onClick={() => setShowFocusModal(true)}
+              >
+                🍅 专注
+              </button>
+              <button
+                className="tool-pill-btn life-tool-btn"
+                title="喝水打卡与健康作息管家"
+                onClick={() => setShowLifeModal(true)}
+              >
+                💧 作息
+              </button>
+              <button
+                className="tool-pill-btn sticky-tool-btn"
+                title="随手便签与待办清单"
+                onClick={() => setShowStickyModal(true)}
+              >
+                📌 便签
+              </button>
+            </div>
+
+            {/* 3. System & Account Actions */}
+            <div className="system-icon-group">
+              <button
+                className="system-btn account-top-btn"
+                title="账号与云同步"
+                onClick={() => setShowAccount(true)}
+              >
+                👤 <span>{localStorage.getItem("koko-account-token") ? "已登录" : "登录"}</span>
+              </button>
+              <button
+                className="system-btn"
+                title={`设置模型与供应商 (${provider.mode === "custom" ? "自定义" : "默认"})`}
+                onClick={() => setShowSettings(true)}
+              >
+                ⚙
+              </button>
+              <button
+                className="system-btn reset-btn"
+                title="清空记忆重新开始"
+                onClick={() => {
+                  if (confirm("重新开始会清空聊天、亲密度、心情、性格成长和外出记录，但会保留 API 设置。确定吗？")) resetMemory();
+                }}
+              >
+                ↺
+              </button>
+            </div>
 
             {window.electronAPI?.isElectron && (
               <div className="desktop-win-controls">
                 <button
-                  className="ghost-btn win-ctrl-btn"
+                  className="win-ctrl-btn"
                   title="最小化"
                   onClick={() => window.electronAPI?.minimize()}
                 >
                   —
                 </button>
                 <button
-                  className="ghost-btn win-ctrl-btn win-close"
+                  className="win-ctrl-btn win-close"
                   title="退出"
                   onClick={() => window.electronAPI?.close()}
                 >
