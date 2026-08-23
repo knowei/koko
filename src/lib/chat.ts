@@ -18,6 +18,8 @@ export interface ProviderCfg {
   };
 }
 
+import type { MemoryKind } from "@/data/persona";
+
 export interface ChatContext {
   affinity: number;
   mood: number;
@@ -28,13 +30,13 @@ export interface ChatContext {
   profile: { name: string; age: number; birthday: string; userNickname: string; city: string };
   weather: { location: string; temperature: number; apparentTemperature: number; weatherCode: number; label: string; isDay: boolean; updatedAt: number } | null;
   adultMode: boolean;
-  memories: Array<{ id: string; text: string; kind: "name" | "preference" | "habit" | "important"; ts: number }>;
+  memories: Array<{ id: string; text: string; kind: MemoryKind; ts: number }>;
 }
 
 export interface MemoryAnalysisResult {
   available: boolean;
   summary?: string;
-  memories?: Array<{ text: string; kind: "name" | "preference" | "habit" | "important" }>;
+  memories?: Array<{ text: string; kind: MemoryKind }>;
   agreements?: Array<{ text: string; dueDate: string | null }>;
   error?: string;
 }

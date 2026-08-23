@@ -6,9 +6,17 @@ import { voiceRecognizer, isSTTSupported } from "@/lib/stt";
 
 interface ChatScreenProps {
   onOpenGames?: () => void;
+  onOpenFocus?: () => void;
+  onOpenLife?: () => void;
+  onOpenSticky?: () => void;
 }
 
-export function ChatScreen({ onOpenGames }: ChatScreenProps = {}) {
+export function ChatScreen({
+  onOpenGames,
+  onOpenFocus,
+  onOpenLife,
+  onOpenSticky,
+}: ChatScreenProps = {}) {
   const messages = useStore((s) => s.messages);
   const streaming = useStore((s) => s.streaming);
   const error = useStore((s) => s.error);
@@ -288,6 +296,21 @@ export function ChatScreen({ onOpenGames }: ChatScreenProps = {}) {
               <button disabled={streaming} onClick={() => { setShowActions(false); void quickAction("miss"); }}>
                 💖 抱抱她
               </button>
+              {onOpenFocus && (
+                <button disabled={streaming} onClick={() => { setShowActions(false); onOpenFocus(); }}>
+                  🍅 开启专注伴读
+                </button>
+              )}
+              {onOpenLife && (
+                <button disabled={streaming} onClick={() => { setShowActions(false); onOpenLife(); }}>
+                  💧 喝水打卡与作息
+                </button>
+              )}
+              {onOpenSticky && (
+                <button disabled={streaming} onClick={() => { setShowActions(false); onOpenSticky(); }}>
+                  📌 随手便签与待办
+                </button>
+              )}
               {onOpenGames && (
                 <button
                   disabled={streaming}
@@ -296,7 +319,7 @@ export function ChatScreen({ onOpenGames }: ChatScreenProps = {}) {
                     onOpenGames();
                   }}
                 >
-                  🎮 一起下五子棋
+                  🎮 双人娱乐坊
                 </button>
               )}
             </div>

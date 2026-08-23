@@ -4101,6 +4101,1238 @@ body.transparent-mode,
   pointer-events: none;
 }
 
+/* ==========================================================================
+   🌱 DIRECTION 1: FOCUS COMPANION, LIFE TRACKER, STICKY NOTES & MEMORY ARCHIVE
+   ========================================================================== */
+
+/* Quick Life Actions Grid in SidePanel */
+.life-quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.quick-life-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.quick-life-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.quick-life-card.focus-card:hover {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.quick-life-card.water-card:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.quick-life-card.sticky-card:hover {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.quick-life-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.quick-life-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.quick-life-text strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.quick-life-text small {
+  font-size: 10px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* ================= Focus Companion Modal ================= */
+.focus-modal-overlay,
+.sticky-modal-overlay,
+.life-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+.focus-modal-card,
+.sticky-modal-card,
+.life-modal-card {
+  background: #ffffff;
+  border-radius: 24px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  padding: 24px;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.focus-modal-header,
+.sticky-modal-header,
+.life-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.focus-header-title,
+.sticky-header-title,
+.life-header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.focus-icon,
+.sticky-icon,
+.life-icon {
+  font-size: 32px;
+  background: #fdf2f8;
+  border: 1px solid #fbcfe8;
+  border-radius: 16px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.focus-modal-header h3,
+.sticky-modal-header h3,
+.life-modal-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.focus-subtitle,
+.sticky-subtitle,
+.life-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.focus-close-btn {
+  background: #f3f4f6;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.focus-close-btn:hover {
+  background: #e5e7eb;
+  color: var(--ink);
+}
+
+/* Focus Stats Bar */
+.focus-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  background: #fafafa;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+
+.focus-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pink);
+}
+
+/* Mode Toggle */
+.focus-mode-toggle {
+  display: flex;
+  gap: 8px;
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.focus-mode-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.focus-mode-btn.active {
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Circular Timer */
+.focus-timer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.circular-progress-wrap {
+  position: relative;
+  width: 220px;
+  height: 220px;
+}
+
+.circular-progress-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.progress-bg {
+  fill: none;
+  stroke: #f3f4f6;
+}
+
+.progress-bar {
+  fill: none;
+  stroke: #f43f5e;
+  transition: stroke-dashoffset 0.8s ease;
+}
+
+.progress-bar.break-mode {
+  stroke: #10b981;
+}
+
+.circular-inner-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.timer-text {
+  font-size: 38px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  letter-spacing: -1px;
+}
+
+.companion-speech-bubble {
+  font-size: 11px;
+  color: var(--pink);
+  font-weight: 600;
+  max-width: 150px;
+  line-height: 1.3;
+}
+
+/* Duration Presets */
+.duration-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.preset-btn {
+  padding: 10px;
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.preset-btn:hover {
+  border-color: var(--pink);
+  background: #fff0f3;
+}
+
+.preset-btn.selected {
+  background: linear-gradient(135deg, var(--pink), #f472b6);
+  color: #ffffff;
+  border-color: var(--pink);
+  box-shadow: 0 2px 8px rgba(224, 114, 137, 0.3);
+}
+
+/* White Noise Panel */
+.white-noise-panel {
+  background: #fdf2f8;
+  border: 1px solid #fbcfe8;
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.noise-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.noise-vol-slider {
+  width: 100px;
+  accent-color: var(--pink);
+}
+
+.noise-options-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.noise-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid #f9a8d4;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.noise-btn.active {
+  background: #ec4899;
+  color: #ffffff;
+  border-color: #ec4899;
+}
+
+/* Action Controls */
+.focus-controls-row {
+  display: flex;
+  gap: 10px;
+}
+
+.focus-action-btn {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.focus-action-btn.primary {
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+}
+
+.focus-action-btn.secondary {
+  background: #f3f4f6;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.focus-action-btn.warning {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+/* Focus Settlement Card */
+.focus-settlement {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ================= Sticky Notes & Todos Styles ================= */
+.sticky-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sticky-add-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25);
+  transition: all 0.15s;
+}
+
+.sticky-todos-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  background: #fafafa;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+
+.sticky-progress-track {
+  flex: 1;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sticky-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  transition: width 0.3s ease;
+}
+
+/* Create Form */
+.sticky-create-form {
+  background: #fffbeb;
+  border: 1.5px dashed #fcd34d;
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sticky-create-form h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.sticky-input,
+.sticky-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  background: #ffffff;
+  font-size: 12.5px;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.sticky-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #92400e;
+}
+
+.color-palette {
+  display: flex;
+  gap: 6px;
+}
+
+.color-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+}
+
+.color-dot.selected {
+  border-color: #d97706;
+  transform: scale(1.15);
+}
+
+.sticky-submit-btn {
+  align-self: flex-end;
+  background: #d97706;
+  color: #ffffff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Sticky Notes Grid */
+.sticky-notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.sticky-note-card {
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  position: relative;
+  transition: transform 0.15s ease;
+}
+
+.sticky-note-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.note-color-pink { background: #fdf2f8; border-color: #fbcfe8; }
+.note-color-yellow { background: #fefce8; border-color: #fef08a; }
+.note-color-green { background: #f0fdf4; border-color: #bbf7d0; }
+.note-color-purple { background: #faf5ff; border-color: #e9d5ff; }
+.note-color-blue { background: #f0f9ff; border-color: #bae6fd; }
+
+.note-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.note-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.note-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.note-pin-btn,
+.note-delete-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  opacity: 0.7;
+}
+
+.note-pin-btn:hover,
+.note-delete-btn:hover {
+  opacity: 1;
+}
+
+.note-body-text {
+  margin: 0;
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Todos inside Note */
+.note-todos-section {
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.todos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.add-subtask-btn {
+  background: transparent;
+  border: none;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pink);
+  cursor: pointer;
+}
+
+.new-todo-row {
+  display: flex;
+  gap: 4px;
+}
+
+.new-todo-input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.save-todo-btn {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.note-todos-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 11.5px;
+}
+
+.todo-item.done .todo-text {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.todo-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.todo-del-btn {
+  background: transparent;
+  border: none;
+  font-size: 10px;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.note-footer {
+  font-size: 10px;
+  color: #9ca3af;
+  align-self: flex-end;
+}
+
+/* ================= Life Companion (Water & Reminders) Styles ================= */
+.life-sub-tabs {
+  display: flex;
+  gap: 8px;
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.life-tab-btn {
+  flex: 1;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.life-tab-btn.active {
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.water-tracker-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.water-header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.water-amount {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0284c7;
+}
+
+.water-amount small {
+  font-size: 14px;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.water-goal-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.water-reset-btn {
+  background: #f3f4f6;
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.water-glasses-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.water-cup-item {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.water-cup-item.filled {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  transform: scale(1.03);
+}
+
+.water-cup-item .cup-icon {
+  font-size: 26px;
+}
+
+.water-cup-item .cup-num {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.water-splash-alert {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  animation: pulseDot 0.8s alternate infinite;
+}
+
+.drink-water-action-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.water-care-tip {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin: 0;
+  text-align: center;
+}
+
+/* Sedentary switch */
+.sedentary-setting-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.sedentary-setting-card h4 {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.sedentary-setting-card p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.switch-label {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch-label input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider-round {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #cbd5e1;
+  transition: 0.3s;
+  border-radius: 34px;
+}
+
+.slider-round:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider-round {
+  background-color: #10b981;
+}
+
+input:checked + .slider-round:before {
+  transform: translateX(20px);
+}
+
+.sedentary-interval-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.interval-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.interval-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.interval-btn.active {
+  background: #10b981;
+  color: #fff;
+  border-color: #10b981;
+}
+
+.sedentary-tips-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.sedentary-tips-box h5 {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  color: #166534;
+}
+
+.sedentary-tips-box ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: #15803d;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Alarms Panel */
+.alarm-add-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.alarm-time-input {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.alarm-label-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.alarm-add-btn {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.alarms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.alarm-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.alarm-time-display {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.alarm-label-display {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  flex: 1;
+  margin-left: 14px;
+}
+
+.alarm-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.alarm-del-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* ================= Memory Profile View Styles ================= */
+.memory-profile-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.memory-profile-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.memory-profile-header p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.memory-add-card {
+  background: #fdf2f8;
+  border: 1.5px solid #fbcfe8;
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memory-add-card h4 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pink);
+}
+
+.memory-add-form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.memory-kind-select {
+  padding: 6px 10px;
+  border: 1px solid #f472b6;
+  border-radius: 10px;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.memory-input {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid #f472b6;
+  border-radius: 10px;
+  background: #ffffff;
+  font-size: 12.5px;
+}
+
+.memory-save-btn {
+  background: linear-gradient(135deg, var(--pink), #f472b6);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 6px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.memory-filters-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kind-filter-pills {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.kind-pill {
+  padding: 5px 12px;
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.kind-pill.active {
+  background: linear-gradient(135deg, var(--pink), #f472b6);
+  color: #ffffff;
+  border-color: var(--pink);
+}
+
+.memory-search-input {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  width: 180px;
+}
+
+.memory-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.memory-item-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.15s ease;
+}
+
+.memory-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.07);
+}
+
+.memory-item-card.pinned {
+  background: #fffdfa;
+  border-color: #fde68a;
+  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.12);
+}
+
+.memory-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kind-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.card-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.card-actions button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.card-actions button:hover,
+.card-actions button.active {
+  opacity: 1;
+}
+
+.memory-text-content {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.memory-card-time {
+  font-size: 10px;
+  color: #9ca3af;
+  align-self: flex-end;
+}
+
+
 
 
 

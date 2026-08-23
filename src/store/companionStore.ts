@@ -72,6 +72,38 @@ export interface Experience {
   ts: number;
 }
 
+export interface TodoItem { id: string; text: string; done: boolean; createdAt: number }
+export interface StickyNote {
+  id: string;
+  title: string;
+  content: string;
+  color: "pink" | "yellow" | "green" | "purple" | "blue";
+  todos: TodoItem[];
+  pinned?: boolean;
+  updatedAt: number;
+}
+export interface FocusStats {
+  totalMinutes: number;
+  completedCount: number;
+  todayMinutes: number;
+  lastSessionDate: string;
+}
+export interface HealthTracker {
+  waterGlasses: number;
+  waterGoal: number;
+  lastWaterDate: string;
+  sedentaryIntervalMinutes: number;
+  sedentaryEnabled: boolean;
+  lastSedentaryNotification: number;
+}
+export interface CustomAlarm {
+  id: string;
+  time: string; // "HH:mm"
+  label: string;
+  enabled: boolean;
+  createdAt: number;
+}
+
 const KEEP_RECENT = 14;
 
 function evolvePersonality(current: PersonalityTraits, text: string): PersonalityTraits {
@@ -86,11 +118,14 @@ function evolvePersonality(current: PersonalityTraits, text: string): Personalit
 
 function extractMemories(text: string): Array<{ text: string; kind: MemoryKind }> {
   const rules: Array<[MemoryKind, RegExp, (value: string) => string]> = [
-    ["name", /(?:我叫|我的名字是)\s*([^，。！？\s]{1,12})/, (v) => `用户的名字是${v}`],
+    ["name", /(?:我叫|我的名字是|可以叫我)\s*([^，。！？\s]{1,12})/, (v) => `用户的名字是${v}`],
     ["preference", /我(?:很|最|比较)?喜欢\s*([^，。！？]{1,30})/, (v) => `用户喜欢${v}`],
-    ["preference", /我(?:不喜欢|害怕|怕)\s*([^，。！？]{1,30})/, (v) => `用户不喜欢或害怕${v}`],
-    ["habit", /我(?:每天|经常|习惯)\s*([^，。！？]{1,30})/, (v) => `用户经常${v}`],
-    ["important", /((?:明天|后天|下周|这个月)[^，。！？]{1,40})/, (v) => `用户提到重要安排：${v}`],
+    ["preference", /我(?:不喜欢|讨厌|害怕|怕|不能吃|对.*过敏)\s*([^，。！？]{1,30})/, (v) => `用户不喜欢、害怕或忌口${v}`],
+    ["habit", /我(?:每天|经常|习惯|总会)\s*([^，。！？]{1,30})/, (v) => `用户日常习惯：${v}`],
+    ["work_study", /我(?:在|从事|做|学的是|专业是|是做|在准备)\s*([^，。！？]{1,30})/, (v) => `用户的工作/学业信息：${v}`],
+    ["secret_mood", /我(?:其实|有时候会|感觉很|心情不好时|好累|好想)\s*([^，。！？]{1,35})/, (v) => `用户的心情与情感秘密：${v}`],
+    ["important_date", /((?:我的生日是|生日在|\d{1,2}月\d{1,2}日|纪念日)[^，。！？]{0,25})/, (v) => `重要日期/纪念日：${v}`],
+    ["important", /((?:明天|后天|下周|这个月|过几天)[^，。！？]{1,40})/, (v) => `用户提到重要安排：${v}`],
   ];
   return rules.flatMap(([kind, pattern, format]) => {
     const match = text.match(pattern);
@@ -203,6 +238,30 @@ interface State {
   chooseEvent: (choiceId: string) => Promise<string | null>;
   todayGamesCount: number;
   lastGameDate: string | null;
+  stickyNotes: StickyNote[];
+  focusStats: FocusStats;
+  healthTracker: HealthTracker;
+  alarms: CustomAlarm[];
+
+  updateMemory: (id: string, text: string, kind: MemoryKind) => void;
+  togglePinMemory: (id: string) => void;
+
+  addStickyNote: (title: string, content?: string, color?: StickyNote["color"]) => string;
+  updateStickyNote: (id: string, patch: Partial<StickyNote>) => void;
+  deleteStickyNote: (id: string) => void;
+  addTodoToNote: (noteId: string, text: string) => void;
+  toggleTodoItem: (noteId: string, todoId: string) => void;
+  deleteTodoItem: (noteId: string, todoId: string) => void;
+
+  finishFocusSession: (minutes: number, label?: string) => Promise<{ affinityGain: number; moodGain: number; pointsGain: number; notice: string }>;
+
+  drinkWater: () => { current: number; max: number; gainAffinity: boolean };
+  resetDailyWater: () => void;
+  setSedentaryConfig: (enabled: boolean, intervalMinutes?: number) => void;
+  addAlarm: (time: string, label: string) => void;
+  toggleAlarm: (id: string) => void;
+  deleteAlarm: (id: string) => void;
+
   finishGameMatch: (
     gameType: "gomoku" | "tictactoe" | "mindmatch" | "xiangqi" | "go" | "memorymatch",
     result: "win" | "lose" | "draw",
@@ -251,6 +310,35 @@ export const useStore = create<State>()(
       previewSkin: null,
       todayGamesCount: 0,
       lastGameDate: null,
+      stickyNotes: [
+        {
+          id: "welcome-note",
+          title: "📝 妹妹的贴心小备忘",
+          content: "这里可以随手记下待办事项或突发灵感~ 妹妹会认真帮哥哥保管好哦！",
+          color: "pink",
+          todos: [
+            { id: "t1", text: "和妹妹下一局中国象棋或五子棋", done: false, createdAt: Date.now() },
+            { id: "t2", text: "喝一杯温水，放松一下眼睛", done: false, createdAt: Date.now() }
+          ],
+          pinned: true,
+          updatedAt: Date.now()
+        }
+      ],
+      focusStats: {
+        totalMinutes: 0,
+        completedCount: 0,
+        todayMinutes: 0,
+        lastSessionDate: todayStr()
+      },
+      healthTracker: {
+        waterGlasses: 0,
+        waterGoal: 8,
+        lastWaterDate: todayStr(),
+        sedentaryIntervalMinutes: 45,
+        sedentaryEnabled: true,
+        lastSedentaryNotification: 0
+      },
+      alarms: [],
       pendingEvent: null,
       pendingEventInstanceId: null,
       eventDate: null,
@@ -391,7 +479,174 @@ export const useStore = create<State>()(
         if (!value) return;
         set((s) => s.memories.some((item) => item.text === value) ? s : ({ memories: [...s.memories, { id: uid(), text: value, kind, ts: Date.now() }].slice(-50) }));
       },
+      updateMemory: (id, text, kind) => set((s) => ({
+        memories: s.memories.map((m) => m.id === id ? { ...m, text: text.trim(), kind, ts: Date.now() } : m)
+      })),
+      togglePinMemory: (id) => set((s) => ({
+        memories: s.memories.map((m) => m.id === id ? { ...m, pinned: !m.pinned } : m)
+      })),
       removeMemory: (id) => set((s) => ({ memories: s.memories.filter((item) => item.id !== id) })),
+      addStickyNote: (title, content = "", color = "pink") => {
+        const id = uid();
+        set((s) => ({
+          stickyNotes: [
+            {
+              id,
+              title: title.trim() || "新便签",
+              content: content.trim(),
+              color,
+              todos: [],
+              pinned: false,
+              updatedAt: Date.now()
+            },
+            ...s.stickyNotes
+          ]
+        }));
+        return id;
+      },
+      updateStickyNote: (id, patch) => set((s) => ({
+        stickyNotes: s.stickyNotes.map((n) => n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n)
+      })),
+      deleteStickyNote: (id) => set((s) => ({
+        stickyNotes: s.stickyNotes.filter((n) => n.id !== id)
+      })),
+      addTodoToNote: (noteId, text) => {
+        const value = text.trim();
+        if (!value) return;
+        set((s) => ({
+          stickyNotes: s.stickyNotes.map((n) => n.id === noteId ? {
+            ...n,
+            todos: [...n.todos, { id: uid(), text: value, done: false, createdAt: Date.now() }],
+            updatedAt: Date.now()
+          } : n)
+        }));
+      },
+      toggleTodoItem: (noteId, todoId) => {
+        const state = get();
+        const note = state.stickyNotes.find((n) => n.id === noteId);
+        const todo = note?.todos.find((t) => t.id === todoId);
+        const willBeDone = todo ? !todo.done : false;
+
+        let extraAffinity = 0;
+        let extraPoints = 0;
+        if (willBeDone) {
+          extraAffinity = 1;
+          extraPoints = 2;
+        }
+
+        set((s) => ({
+          affinity: clamp(s.affinity + extraAffinity),
+          points: s.points + extraPoints,
+          pointLedger: extraPoints > 0
+            ? [...s.pointLedger, { id: uid(), amount: extraPoints, reason: `完成待办：${todo?.text.slice(0, 15)}`, ts: Date.now() }].slice(-100)
+            : s.pointLedger,
+          stickyNotes: s.stickyNotes.map((n) => n.id === noteId ? {
+            ...n,
+            todos: n.todos.map((t) => t.id === todoId ? { ...t, done: willBeDone } : t),
+            updatedAt: Date.now()
+          } : n)
+        }));
+      },
+      deleteTodoItem: (noteId, todoId) => set((s) => ({
+        stickyNotes: s.stickyNotes.map((n) => n.id === noteId ? {
+          ...n,
+          todos: n.todos.filter((t) => t.id !== todoId),
+          updatedAt: Date.now()
+        } : n)
+      })),
+      finishFocusSession: async (minutes, label = "专注伴读") => {
+        const s = get();
+        const today = todayStr();
+        const prevStats = s.focusStats;
+        const isNewDay = prevStats.lastSessionDate !== today;
+        const newTodayMinutes = (isNewDay ? 0 : prevStats.todayMinutes) + minutes;
+
+        const affinityGain = Math.min(8, Math.max(3, Math.floor(minutes / 5)));
+        const moodGain = Math.min(10, Math.max(4, Math.floor(minutes / 4)));
+        const pointsGain = Math.min(25, Math.max(5, Math.floor(minutes / 2)));
+        const companionName = s.profile.name || "妹妹";
+        const userNickname = s.profile.userNickname || "哥哥";
+
+        const nextAffinity = clamp(s.affinity + affinityGain);
+        const unlocked = MILESTONES.filter((item) => nextAffinity >= item.affinity && !s.unlockedMilestones.includes(item.id));
+        const experienceTitle = `完成了 ${minutes} 分钟 ${label}`;
+        const experienceDetail = `在${companionName}的安静伴读下，高效专注了 ${minutes} 分钟。`;
+
+        set((current) => ({
+          affinity: nextAffinity,
+          mood: clamp(current.mood + moodGain),
+          points: current.points + pointsGain,
+          pointLedger: [...current.pointLedger, { id: uid(), amount: pointsGain, reason: `专注奖励：${minutes}分钟`, ts: Date.now() }].slice(-100),
+          unlockedMilestones: [...current.unlockedMilestones, ...unlocked.map((item) => item.id)],
+          focusStats: {
+            totalMinutes: current.focusStats.totalMinutes + minutes,
+            completedCount: current.focusStats.completedCount + 1,
+            todayMinutes: newTodayMinutes,
+            lastSessionDate: today
+          },
+          experiences: [...current.experiences, { id: uid(), title: experienceTitle, detail: experienceDetail, kind: "agreement" as const, ts: Date.now() }].slice(-100),
+          messages: [
+            ...current.messages,
+            {
+              id: uid(),
+              role: "user",
+              ts: Date.now(),
+              kind: "event",
+              content: `🍅 ${label} · 专注达标 ${minutes} 分钟 · 亲密度 +${affinityGain} · 心情 +${moodGain} · 获得 ${pointsGain} 心愿星`,
+              hiddenPrompt: `${userNickname}刚刚和你一起完成了 ${minutes} 分钟的“${label}”专注！请以${companionName}温柔关切、夸奖和提醒他喝口水休息的口吻回应。`,
+            },
+            ...unlocked.map((item) => ({ id: uid(), role: "assistant" as const, content: item.text, ts: Date.now(), kind: "milestone" as const }))
+          ]
+        }));
+
+        void get()._runTurn();
+
+        return {
+          affinityGain,
+          moodGain,
+          pointsGain,
+          notice: `专注达标！亲密度 +${affinityGain} · 心情 +${moodGain} · 心愿星 +${pointsGain}`
+        };
+      },
+      drinkWater: () => {
+        const s = get();
+        const today = todayStr();
+        const isNewDay = s.healthTracker.lastWaterDate !== today;
+        const currentGlasses = isNewDay ? 0 : s.healthTracker.waterGlasses;
+        const nextGlasses = Math.min(s.healthTracker.waterGoal, currentGlasses + 1);
+        const gainAffinity = nextGlasses > currentGlasses;
+
+        set((cur) => ({
+          affinity: gainAffinity ? clamp(cur.affinity + 1) : cur.affinity,
+          mood: gainAffinity ? clamp(cur.mood + 2) : cur.mood,
+          healthTracker: {
+            ...cur.healthTracker,
+            waterGlasses: nextGlasses,
+            lastWaterDate: today
+          }
+        }));
+
+        return { current: nextGlasses, max: s.healthTracker.waterGoal, gainAffinity };
+      },
+      resetDailyWater: () => set((s) => ({
+        healthTracker: { ...s.healthTracker, waterGlasses: 0, lastWaterDate: todayStr() }
+      })),
+      setSedentaryConfig: (enabled, intervalMinutes) => set((s) => ({
+        healthTracker: {
+          ...s.healthTracker,
+          sedentaryEnabled: enabled,
+          sedentaryIntervalMinutes: intervalMinutes ?? s.healthTracker.sedentaryIntervalMinutes
+        }
+      })),
+      addAlarm: (time, label) => set((s) => ({
+        alarms: [...s.alarms, { id: uid(), time, label: label.trim() || "定时提醒", enabled: true, createdAt: Date.now() }]
+      })),
+      toggleAlarm: (id) => set((s) => ({
+        alarms: s.alarms.map((a) => a.id === id ? { ...a, enabled: !a.enabled } : a)
+      })),
+      deleteAlarm: (id) => set((s) => ({
+        alarms: s.alarms.filter((a) => a.id !== id)
+      })),
       removeDiary: (date) => set((s) => ({ diaries: s.diaries.filter((item) => item.date !== date) })),
       removeExperience: (id) => set((s) => ({ experiences: s.experiences.filter((item) => item.id !== id) })),
       addAgreement: (text, dueDate = null) => {
@@ -564,6 +819,10 @@ export const useStore = create<State>()(
           diaries: save.diaries,
           agreements: save.agreements,
           experiences: save.experiences,
+          stickyNotes: save.stickyNotes,
+          focusStats: save.focusStats,
+          healthTracker: save.healthTracker,
+          alarms: save.alarms,
           rollingSummary: save.rollingSummary,
           lastAnalyzedMessageCount: save.lastAnalyzedMessageCount,
           lastDiaryAnalyzedCount: save.lastDiaryAnalyzedCount,
@@ -600,6 +859,10 @@ export const useStore = create<State>()(
           diaries: Array.isArray(incoming.diaries) ? incoming.diaries : [],
           agreements: Array.isArray(incoming.agreements) ? incoming.agreements : [],
           experiences: Array.isArray(incoming.experiences) ? incoming.experiences : [],
+          stickyNotes: Array.isArray(incoming.stickyNotes) ? incoming.stickyNotes : current.stickyNotes,
+          focusStats: incoming.focusStats ?? current.focusStats,
+          healthTracker: incoming.healthTracker ?? current.healthTracker,
+          alarms: Array.isArray(incoming.alarms) ? incoming.alarms : current.alarms,
           rollingSummary: typeof incoming.rollingSummary === "string" ? incoming.rollingSummary.slice(0, 900) : "",
           lastAnalyzedMessageCount: typeof incoming.lastAnalyzedMessageCount === "number" ? Math.max(0, incoming.lastAnalyzedMessageCount) : 0,
           analyzingMemory: false,
@@ -938,8 +1201,8 @@ export const useStore = create<State>()(
         const apiMessages: ChatMsg[] = recent.map((m) => ({ role: m.role, content: m.hiddenPrompt ?? m.content }));
         const lastUserText = [...history].reverse().find((message) => message.role === "user")?.content ?? "";
         const relevantMemories = [...state.memories]
-          .sort((a, b) => keywordScore(b.text, lastUserText) - keywordScore(a.text, lastUserText) || b.ts - a.ts)
-          .slice(0, 5);
+          .sort((a, b) => (b.pinned ? 10 : 0) - (a.pinned ? 10 : 0) || keywordScore(b.text, lastUserText) - keywordScore(a.text, lastUserText) || b.ts - a.ts)
+          .slice(0, 8);
         const experienceMemories: CompanionMemory[] = [...state.experiences]
           .sort((a, b) => keywordScore(`${b.title}${b.detail}`, lastUserText) - keywordScore(`${a.title}${a.detail}`, lastUserText) || b.ts - a.ts)
           .slice(0, 2)

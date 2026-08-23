@@ -2,7 +2,15 @@ import { useState } from "react";
 import { useStore } from "@/store/companionStore";
 import { POLAROIDS, type MemoryKind } from "@/data/persona";
 
-const kindNames: Record<MemoryKind, string> = { name: "名字", preference: "喜好", habit: "习惯", important: "重要" };
+const kindConfig: Record<MemoryKind, { label: string; icon: string; color: string }> = {
+  name: { label: "称呼与名字", icon: "👤", color: "#3b82f6" },
+  preference: { label: "饮食与喜好", icon: "🍰", color: "#ec4899" },
+  habit: { label: "生活作息习惯", icon: "☕", color: "#f59e0b" },
+  work_study: { label: "工作与学业", icon: "💼", color: "#6366f1" },
+  secret_mood: { label: "心情与小秘密", icon: "💖", color: "#8b5cf6" },
+  important_date: { label: "纪念日与生日", icon: "🎂", color: "#ef4444" },
+  important: { label: "重要约定与事项", icon: "📌", color: "#10b981" },
+};
 
 export function MemoryScreen() {
   const memories = useStore((state) => state.memories);
@@ -11,6 +19,8 @@ export function MemoryScreen() {
   const affinity = useStore((state) => state.affinity);
   const unlockedSkins = useStore((state) => state.unlockedSkins);
   const addMemory = useStore((state) => state.addMemory);
+  const updateMemory = useStore((state) => state.updateMemory);
+  const togglePinMemory = useStore((state) => state.togglePinMemory);
   const removeMemory = useStore((state) => state.removeMemory);
   const removeDiary = useStore((state) => state.removeDiary);
   const profile = useStore((state) => state.profile);
@@ -26,17 +36,43 @@ export function MemoryScreen() {
   const analyzingDiary = useStore((state) => state.analyzingDiary);
   const refreshDiaryAnalysis = useStore((state) => state.refreshDiaryAnalysis);
 
-  const [tab, setTab] = useState<"scrapbook" | "polaroids">("scrapbook");
+  const [tab, setTab] = useState<"scrapbook" | "profile" | "polaroids">("scrapbook");
   const [draft, setDraft] = useState("");
-  const [kind, setKind] = useState<MemoryKind>("important");
+  const [kind, setKind] = useState<MemoryKind>("preference");
+  const [selectedKindFilter, setSelectedKindFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [editingKind, setEditingKind] = useState<MemoryKind>("preference");
+
   const [agreementDraft, setAgreementDraft] = useState("");
   const [agreementDate, setAgreementDate] = useState("");
   const [activePolaroid, setActivePolaroid] = useState<string | null>(null);
+
+  const companionName = profile.name || "妹妹";
 
   const isPolaroidUnlocked = (p: typeof POLAROIDS[number]) => {
     if (p.id === "photo_mint") return unlockedSkins.includes("green") || affinity >= p.minAffinity;
     return affinity >= p.minAffinity;
   };
+
+  const handleStartEdit = (m: typeof memories[number]) => {
+    setEditingMemoryId(m.id);
+    setEditingText(m.text);
+    setEditingKind(m.kind);
+  };
+
+  const handleSaveEdit = (id: string) => {
+    if (!editingText.trim()) return;
+    updateMemory(id, editingText.trim(), editingKind);
+    setEditingMemoryId(null);
+  };
+
+  const filteredMemories = memories.filter((m) => {
+    if (selectedKindFilter !== "all" && m.kind !== selectedKindFilter) return false;
+    if (searchQuery.trim() && !m.text.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
 
   return (
     <section className="memory-screen">
@@ -45,16 +81,22 @@ export function MemoryScreen() {
           <span>📖</span>
           <h2>我们的回忆手账</h2>
         </div>
-        <p>{profile.name || "妹妹"}会把重要的话、每天发生的点滴与珍贵瞬间认真收藏起来。</p>
+        <p>{companionName}会把重要的话、对你的了解、每天发生的点滴与珍贵瞬间认真收藏起来。</p>
       </header>
 
-      {/* Sub-Tabs: Scrapbook Diary vs Polaroid Gallery */}
+      {/* Sub-Tabs: Scrapbook Diary vs Profile Archive vs Polaroid Gallery */}
       <div className="memory-tabs">
         <button
           className={`memory-tab-btn ${tab === "scrapbook" ? "active" : ""}`}
           onClick={() => setTab("scrapbook")}
         >
           📝 手账与日记
+        </button>
+        <button
+          className={`memory-tab-btn ${tab === "profile" ? "active" : ""}`}
+          onClick={() => setTab("profile")}
+        >
+          🧠 记忆档案与画像 ({memories.length})
         </button>
         <button
           className={`memory-tab-btn ${tab === "polaroids" ? "active" : ""}`}
@@ -64,7 +106,182 @@ export function MemoryScreen() {
         </button>
       </div>
 
-      {tab === "polaroids" ? (
+      {tab === "profile" ? (
+        /* Memory Profile Archive Tab */
+        <section className="memory-profile-view">
+          <div className="memory-profile-header">
+            <div>
+              <h3>{companionName}眼中的你 · 个人画像</h3>
+              <p>在日常聊天中提到的喜好、习惯与秘密，妹妹都会深深记在心里，并在合适时机主动关心你~</p>
+            </div>
+          </div>
+
+          {/* Add New Memory Form */}
+          <div className="memory-add-card">
+            <h4>✨ 告诉{companionName}关于你的一件事</h4>
+            <div className="memory-add-form-row">
+              <select
+                value={kind}
+                onChange={(e) => setKind(e.target.value as MemoryKind)}
+                className="memory-kind-select"
+              >
+                {Object.entries(kindConfig).map(([k, cfg]) => (
+                  <option key={k} value={k}>
+                    {cfg.icon} {cfg.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="例如：我最喜欢喝乌龙奶茶半糖 / 我生日是10月15日 / 我是前端工程师"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                className="memory-input"
+                maxLength={80}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && draft.trim()) {
+                    addMemory(draft.trim(), kind);
+                    setDraft("");
+                  }
+                }}
+              />
+              <button
+                className="memory-save-btn"
+                onClick={() => {
+                  if (!draft.trim()) return;
+                  addMemory(draft.trim(), kind);
+                  setDraft("");
+                }}
+              >
+                记在心里 📌
+              </button>
+            </div>
+          </div>
+
+          {/* Filters and Search */}
+          <div className="memory-filters-row">
+            <div className="kind-filter-pills">
+              <button
+                className={`kind-pill ${selectedKindFilter === "all" ? "active" : ""}`}
+                onClick={() => setSelectedKindFilter("all")}
+              >
+                全部 ({memories.length})
+              </button>
+              {Object.entries(kindConfig).map(([k, cfg]) => {
+                const count = memories.filter((m) => m.kind === k).length;
+                return (
+                  <button
+                    key={k}
+                    className={`kind-pill ${selectedKindFilter === k ? "active" : ""}`}
+                    onClick={() => setSelectedKindFilter(k)}
+                  >
+                    {cfg.icon} {cfg.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              type="text"
+              placeholder="🔍 搜索记忆关键词..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="memory-search-input"
+            />
+          </div>
+
+          {/* Memory Tags / Cards Grid */}
+          <div className="memory-cards-grid">
+            {filteredMemories.length === 0 ? (
+              <div className="memory-empty-state">
+                <span className="empty-icon">💭</span>
+                <p>
+                  {searchQuery ? "没有找到匹配的记忆项" : `和${companionName}聊聊你的日常，她会自动记住关于你的一切哦~`}
+                </p>
+              </div>
+            ) : (
+              filteredMemories.map((m) => {
+                const cfg = kindConfig[m.kind] || kindConfig.important;
+                const isEditing = editingMemoryId === m.id;
+
+                return (
+                  <div
+                    key={m.id}
+                    className={`memory-item-card ${m.pinned ? "pinned" : ""}`}
+                    style={{ borderLeftColor: cfg.color }}
+                  >
+                    {isEditing ? (
+                      <div className="memory-edit-inline">
+                        <select
+                          value={editingKind}
+                          onChange={(e) => setEditingKind(e.target.value as MemoryKind)}
+                          className="memory-kind-select small"
+                        >
+                          {Object.entries(kindConfig).map(([k, c]) => (
+                            <option key={k} value={k}>
+                              {c.icon} {c.label}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          className="memory-input small"
+                          autoFocus
+                          onKeyDown={(e) => e.key === "Enter" && handleSaveEdit(m.id)}
+                        />
+                        <div className="edit-btn-row">
+                          <button className="confirm-btn" onClick={() => handleSaveEdit(m.id)}>
+                            保存
+                          </button>
+                          <button className="cancel-btn" onClick={() => setEditingMemoryId(null)}>
+                            取消
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="memory-card-top">
+                          <span className="kind-badge" style={{ backgroundColor: `${cfg.color}18`, color: cfg.color }}>
+                            {cfg.icon} {cfg.label}
+                          </span>
+                          <div className="card-actions">
+                            <button
+                              className={`pin-btn ${m.pinned ? "active" : ""}`}
+                              onClick={() => togglePinMemory(m.id)}
+                              title={m.pinned ? "取消重要置顶" : "设为重要置顶"}
+                            >
+                              {m.pinned ? "⭐" : "☆"}
+                            </button>
+                            <button
+                              className="edit-btn"
+                              onClick={() => handleStartEdit(m)}
+                              title="编辑记忆"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className="del-btn"
+                              onClick={() => removeMemory(m.id)}
+                              title="删除记忆"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                        <p className="memory-text-content">{m.text}</p>
+                        <div className="memory-card-time">
+                          <span>{new Date(m.ts).toLocaleDateString("zh-CN")}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+      ) : tab === "polaroids" ? (
         <section className="polaroid-gallery">
           <div className="polaroid-header">
             <h3>珍贵瞬间 · 拍立得相册</h3>
@@ -108,7 +325,7 @@ export function MemoryScreen() {
             <div className="tape-strip" />
             <div>
               <strong>记忆整理与摘要</strong>
-              <p>{rollingSummary || "每积累 8 条真实聊天后，可可会在后台提炼共同经历、重要信息和明确的约定。"}</p>
+              <p>{rollingSummary || `每积累 8 条真实聊天后，${companionName}会在后台提炼共同经历、重要信息和明确的约定。`}</p>
             </div>
             <button
               disabled={analyzingMemory || !messages.some((message) => message.kind === "chat" && message.content.trim())}
@@ -149,7 +366,7 @@ export function MemoryScreen() {
             </div>
             <div className="agreement-list">
               {agreements.length === 0 && (
-                <div className="empty-memory">聊天里说“明天提醒我”“下次一起去……”时，{profile.name || "妹妹"}也会自动记在这里。</div>
+                <div className="empty-memory">聊天里说“明天提醒我”“下次一起去……”时，{companionName}也会自动记在这里。</div>
               )}
               {[...agreements].reverse().map((agreement) => (
                 <article key={agreement.id} className={`agreement-item ${agreement.status}`}>
@@ -187,7 +404,7 @@ export function MemoryScreen() {
             </div>
             <div className="experience-grid">
               {experiences.length === 0 && (
-                <div className="empty-memory">完成约定、一起外出、送礼物或经历随机事件后，会留下属于你们的共同回忆。</div>
+                <div className="empty-memory">完成约定、专注伴读、一起外出、送礼物或下棋后，会留下属于你们的共同回忆。</div>
               )}
               {[...experiences].reverse().slice(0, 12).map((experience) => (
                 <article key={experience.id} className={`experience-record ${experience.kind}`}>
@@ -206,13 +423,13 @@ export function MemoryScreen() {
             <section className="memory-page-card">
               <div className="tape-strip yellow-tape" />
               <div className="memory-page-title">
-                <strong>{profile.name || "妹妹"}记得你</strong>
+                <strong>{companionName}记得你</strong>
                 <span>{memories.length}/50</span>
               </div>
               <div className="memory-editor">
                 <select value={kind} onChange={(event) => setKind(event.target.value as MemoryKind)}>
-                  {Object.entries(kindNames).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                  {Object.entries(kindConfig).map(([value, cfg]) => (
+                    <option key={value} value={value}>{cfg.label}</option>
                   ))}
                 </select>
                 <input
@@ -229,20 +446,23 @@ export function MemoryScreen() {
                 {memories.length === 0 && (
                   <div className="empty-memory">聊天中说出名字、喜好、习惯或近期安排后，这里会慢慢出现记录。</div>
                 )}
-                {memories.map((memory) => (
-                  <article key={memory.id} className="memory-record">
-                    <span className={`memory-kind-tag ${memory.kind}`}>{kindNames[memory.kind]}</span>
-                    <p>{memory.text}</p>
-                    <button onClick={() => removeMemory(memory.id)} aria-label="删除记忆">×</button>
-                  </article>
-                ))}
+                {memories.slice(0, 10).map((memory) => {
+                  const cfg = kindConfig[memory.kind] || kindConfig.important;
+                  return (
+                    <article key={memory.id} className="memory-record">
+                      <span className={`memory-kind-tag ${memory.kind}`}>{cfg.label}</span>
+                      <p>{memory.text}</p>
+                      <button onClick={() => removeMemory(memory.id)} aria-label="删除记忆">×</button>
+                    </article>
+                  );
+                })}
               </div>
             </section>
 
             <section className="memory-page-card diary-page">
               <div className="tape-strip blue-tape" />
               <div className="memory-page-title">
-                <strong>{profile.name || "妹妹"}的心情日记</strong>
+                <strong>{companionName}的心情日记</strong>
                 <span>{diaries.length} 篇</span>
               </div>
               <button

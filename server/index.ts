@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
-import { buildSystemPrompt, DEFAULT_PERSONALITY, DEFAULT_PROFILE, RANDOM_EVENTS, type CompanionMemory, type CompanionProfile, type PersonalityTraits, type ReplyStyle, type WeatherInfo } from "../src/data/persona.js";
+import { buildSystemPrompt, DEFAULT_PERSONALITY, DEFAULT_PROFILE, RANDOM_EVENTS, type CompanionMemory, type CompanionProfile, type MemoryKind, type PersonalityTraits, type ReplyStyle, type WeatherInfo } from "../src/data/persona.js";
 import { createToken, db, hashPassword, initPlatform, requireAuth, SERVER_PRODUCTS, transaction, type AuthRequest, verifyPassword } from "./platform.js";
 import { synthesizeCustomTTS, synthesizeEdgeTTS } from "./tts.js";
 import { runVisionComment, type VisionCommentBody } from "./vision.js";
@@ -72,7 +72,7 @@ interface MemoryAnalysisBody {
 }
 interface MemoryAnalysisResult {
   summary: string;
-  memories: Array<{ text: string; kind: "name" | "preference" | "habit" | "important" }>;
+  memories: Array<{ text: string; kind: MemoryKind }>;
   agreements: Array<{ text: string; dueDate: string | null }>;
 }
 interface DiaryAnalysisBody {

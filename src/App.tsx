@@ -13,6 +13,9 @@ import { MemoryScreen } from "@/components/MemoryScreen";
 import { GameZoneScreen } from "@/components/GameZoneScreen";
 import { AccountModal } from "@/components/AccountModal";
 import { DesktopPetWidget } from "@/components/DesktopPetWidget";
+import { FocusCompanionModal } from "@/components/FocusCompanionModal";
+import { StickyNotesModal } from "@/components/StickyNotesModal";
+import { LifeCompanionModal } from "@/components/LifeCompanionModal";
 
 declare global {
   interface Window {
@@ -42,6 +45,9 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showPetWidget, setShowPetWidget] = useState(false);
+  const [showFocusModal, setShowFocusModal] = useState(false);
+  const [showStickyModal, setShowStickyModal] = useState(false);
+  const [showLifeModal, setShowLifeModal] = useState(false);
   const [isMiniCompanion, setIsMiniCompanion] = useState(() => {
     return typeof window !== "undefined" && window.location.search.includes("mode=pet");
   });
@@ -188,6 +194,27 @@ export default function App() {
             >
               🌸 悬浮陪伴
             </button>
+            <button
+              className="ghost-btn desktop-focus-btn"
+              title="番茄钟专注伴读与舒缓白噪音"
+              onClick={() => setShowFocusModal(true)}
+            >
+              🍅 专注
+            </button>
+            <button
+              className="ghost-btn desktop-life-btn"
+              title="喝水打卡与健康作息管家"
+              onClick={() => setShowLifeModal(true)}
+            >
+              💧 作息
+            </button>
+            <button
+              className="ghost-btn desktop-sticky-btn"
+              title="随手便签与待办清单"
+              onClick={() => setShowStickyModal(true)}
+            >
+              📌 便签
+            </button>
             <button className="ghost-btn desktop-game-btn" onClick={() => setActiveView(activeView === "games" ? "chat" : "games")}>
               {activeView === "games" ? "← 返回" : "🎮 娱乐"}
             </button>
@@ -248,8 +275,23 @@ export default function App() {
             <GameZoneScreen onBack={() => setActiveView("life")} />
           ) : (
             <>
-              <div className="chat-pane"><ChatScreen onOpenGames={() => setActiveView("games")} /></div>
-              <div className="life-pane"><CharacterStage /><SidePanel onOpenGames={() => setActiveView("games")} /></div>
+              <div className="chat-pane">
+                <ChatScreen
+                  onOpenGames={() => setActiveView("games")}
+                  onOpenFocus={() => setShowFocusModal(true)}
+                  onOpenLife={() => setShowLifeModal(true)}
+                  onOpenSticky={() => setShowStickyModal(true)}
+                />
+              </div>
+              <div className="life-pane">
+                <CharacterStage />
+                <SidePanel
+                  onOpenGames={() => setActiveView("games")}
+                  onOpenFocus={() => setShowFocusModal(true)}
+                  onOpenLife={() => setShowLifeModal(true)}
+                  onOpenSticky={() => setShowStickyModal(true)}
+                />
+              </div>
             </>
           )}
         </main>
@@ -270,6 +312,9 @@ export default function App() {
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} onOpenAccount={() => setShowAccount(true)} />}
       {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
       {showPetWidget && <DesktopPetWidget onClose={() => setShowPetWidget(false)} />}
+      <FocusCompanionModal isOpen={showFocusModal} onClose={() => setShowFocusModal(false)} />
+      <StickyNotesModal isOpen={showStickyModal} onClose={() => setShowStickyModal(false)} />
+      <LifeCompanionModal isOpen={showLifeModal} onClose={() => setShowLifeModal(false)} />
       <RandomEventModal />
     </div>
   );

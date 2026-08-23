@@ -6,7 +6,17 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function SidePanel({ onOpenGames }: { onOpenGames?: () => void }) {
+export function SidePanel({
+  onOpenGames,
+  onOpenFocus,
+  onOpenSticky,
+  onOpenLife,
+}: {
+  onOpenGames?: () => void;
+  onOpenFocus?: () => void;
+  onOpenSticky?: () => void;
+  onOpenLife?: () => void;
+}) {
   const affinity = useStore((s) => s.affinity);
   const lastCheckIn = useStore((s) => s.lastCheckIn);
   const dailyCheckIn = useStore((s) => s.dailyCheckIn);
@@ -54,14 +64,47 @@ export function SidePanel({ onOpenGames }: { onOpenGames?: () => void }) {
           <div className="banner-icon-badge">🎮</div>
           <div className="banner-meta">
             <div className="banner-title-row">
-              <strong>双人娱乐坊 · 对弈与小游戏</strong>
+              <strong>双人娱乐坊 · 6大互动游戏</strong>
               <span className="banner-new-tag">NEW ✨</span>
             </div>
-            <small>和{profileName || "妹妹"}下五子棋、井字棋与默契测试</small>
+            <small>象棋、围棋、五子棋、翻牌与默契测试</small>
           </div>
           <span className="banner-arrow">➔</span>
         </div>
       )}
+
+      {/* Life Companion Action Grid */}
+      <div className="life-quick-actions-grid">
+        {onOpenFocus && (
+          <div className="quick-life-card focus-card" onClick={onOpenFocus} role="button" tabIndex={0}>
+            <span className="quick-life-icon">🍅</span>
+            <div className="quick-life-text">
+              <strong>专注伴读</strong>
+              <small>白噪音·番茄钟</small>
+            </div>
+          </div>
+        )}
+
+        {onOpenLife && (
+          <div className="quick-life-card water-card" onClick={onOpenLife} role="button" tabIndex={0}>
+            <span className="quick-life-icon">💧</span>
+            <div className="quick-life-text">
+              <strong>喝水打卡</strong>
+              <small>作息·防久坐</small>
+            </div>
+          </div>
+        )}
+
+        {onOpenSticky && (
+          <div className="quick-life-card sticky-card" onClick={onOpenSticky} role="button" tabIndex={0}>
+            <span className="quick-life-icon">📌</span>
+            <div className="quick-life-text">
+              <strong>随手便签</strong>
+              <small>待办·备忘</small>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="personality-card">
         <span>现在的{profileName || "妹妹"}</span>

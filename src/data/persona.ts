@@ -22,8 +22,8 @@ export interface WeatherInfo {
   updatedAt: number;
 }
 
-export type MemoryKind = "name" | "preference" | "habit" | "important";
-export interface CompanionMemory { id: string; text: string; kind: MemoryKind; ts: number }
+export type MemoryKind = "name" | "preference" | "habit" | "important" | "work_study" | "secret_mood" | "important_date";
+export interface CompanionMemory { id: string; text: string; kind: MemoryKind; ts: number; pinned?: boolean }
 
 export interface RoutineState { emoji: string; label: string; promptHint: string }
 export function getRoutine(hour: number): RoutineState {
@@ -484,7 +484,7 @@ ${profile.name}：欸欸欸真的假的！！！太厉害了吧我哥！今晚�
     : "";
 
   const memoryContext = memories.length
-    ? `\n\n# 关于用户的长期记忆（自然记住，不要逐条复述）\n${memories.map((item) => `- ${item.text}`).join("\n")}`
+    ? `\n\n# 关于用户的长期记忆与个人画像（已深深记在心里，在合适时机自然体贴地提及，不要生硬背诵）：\n${memories.map((item) => `- ${item.text}`).join("\n")}`
     : "";
 
   const routine = getRoutine(hour);
