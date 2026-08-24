@@ -109,5 +109,6 @@ jobs:
           gh release create "${GITHUB_REF_NAME}"
           release-assets/*.exe
           release-assets/*.apk
+          --repo "${GITHUB_REPOSITORY}"
           --title "可可 ${GITHUB_REF_NAME}"
           --generate-notes
