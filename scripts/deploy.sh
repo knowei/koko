@@ -49,9 +49,16 @@ if ! archive_is_valid; then
   DOWNLOAD_URLS+=("https://gh-proxy.com/$PIKAFISH_OFFICIAL_URL" "$PIKAFISH_OFFICIAL_URL")
   for url in "${DOWNLOAD_URLS[@]}"; do
     echo "正在下载 Pikafish：$url"
-    rm -f "$PIKAFISH_ARCHIVE.part"
-    if curl --fail --location --retry 5 --retry-delay 3 --retry-all-errors --connect-timeout 20 \
-      --output "$PIKAFISH_ARCHIVE.part" "$url"; then
+    for attempt in 1 2 3 4 5; do
+      rm -f "$PIKAFISH_ARCHIVE.part"
+      if curl --fail --location --connect-timeout 20 --max-time 600 \
+        --output "$PIKAFISH_ARCHIVE.part" "$url"; then
+        break
+      fi
+      echo "第 ${attempt} 次下载失败，3 秒后重试。"
+      sleep 3
+    done
+    if [[ -f "$PIKAFISH_ARCHIVE.part" ]]; then
       if echo "$PIKAFISH_SHA256  $PIKAFISH_ARCHIVE.part" | sha256sum -c - >/dev/null 2>&1; then
         mv "$PIKAFISH_ARCHIVE.part" "$PIKAFISH_ARCHIVE"
         break
