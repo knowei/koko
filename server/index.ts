@@ -10,6 +10,8 @@ import { createToken, db, hashPassword, initPlatform, requireAuth, SERVER_PRODUC
 import { synthesizeCustomTTS, synthesizeEdgeTTS } from "./tts.js";
 import { runVisionComment, type VisionCommentBody } from "./vision.js";
 import { StreamingReasoningFilter } from "../src/lib/reasoningFilter.js";
+import { pikafish, type XiangqiDifficulty } from "./pikafish.js";
+import { getAllXiangqiMoves, type XiangqiBoard } from "../src/game/xiangqi.js";
 
 dotenv.config();
 
@@ -252,7 +254,28 @@ app.get("/api/health", (_req, res) => {
     ok: true,
     defaultProvider: process.env.ANTHROPIC_API_KEY ? "anthropic" : "echo",
     model: DEFAULT_MODEL,
+    pikafish: pikafish.configured,
   });
+});
+
+app.post("/api/games/xiangqi/move", async (req, res) => {
+  const board = req.body?.board as XiangqiBoard;
+  const difficulty = String(req.body?.difficulty || "smart") as XiangqiDifficulty;
+  const validDifficulty = new Set<XiangqiDifficulty>(["easy", "smart", "hard"]);
+  if (!Array.isArray(board) || board.length !== 10 || board.some((row) => !Array.isArray(row) || row.length !== 9)) {
+    res.status(400).json({ error: "棋盘数据无效。" }); return;
+  }
+  if (!validDifficulty.has(difficulty)) { res.status(400).json({ error: "难度无效。" }); return; }
+  if (!pikafish.configured) { res.status(503).json({ error: "Pikafish 引擎尚未配置。" }); return; }
+  try {
+    const move = await pikafish.bestMove(board, difficulty);
+    const legal = getAllXiangqiMoves(board, "black").some((item) => item.fromR === move.fromR && item.fromC === move.fromC && item.toR === move.toR && item.toC === move.toC);
+    if (!legal) throw new Error("引擎返回了不合法的走法。");
+    res.json({ move, engine: "pikafish" });
+  } catch (error) {
+    console.error("Pikafish move error:", error);
+    res.status(503).json({ error: error instanceof Error ? error.message : "象棋引擎暂时不可用。" });
+  }
 });
 
 app.post("/api/auth/register", async (req, res) => {
@@ -827,7 +850,7 @@ if (IS_PRODUCTION) {
 initPlatform()
   .then(() => app.listen(PORT, () => {
     const mode = process.env.ANTHROPIC_API_KEY ? "Anthropic" : "回声模式(无Key)";
-    console.log(`[ai-companion] 后端已启动 http://localhost:${PORT} · 默认供应商: ${mode} · 数据库: ${db ? "已连接" : "未配置"}`);
+    console.log(`[ai-companion] 后端已启动 http://localhost:${PORT} · 默认供应商: ${mode} · 数据库: ${db ? "已连接" : "未配置"} · 象棋: ${pikafish.configured ? "Pikafish" : "本地降级"}`);
   }))
   .catch((error) => {
     console.error("[ai-companion] 数据库初始化失败：", error);

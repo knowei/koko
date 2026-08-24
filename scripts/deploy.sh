@@ -47,14 +47,15 @@ APP_PORT="$(grep -E '^APP_PORT=' .env | tail -n 1 | cut -d= -f2- || true)"
 APP_PORT="${APP_PORT:-8080}"
 echo "等待服务通过健康检查..."
 for _ in $(seq 1 30); do
-  if curl --fail --silent "http://127.0.0.1:${APP_PORT}/api/health" >/dev/null; then
+  HEALTH_JSON="$(curl --fail --silent "http://127.0.0.1:${APP_PORT}/api/health" || true)"
+  if [[ "$HEALTH_JSON" == *'"ok":true'* && "$HEALTH_JSON" == *'"pikafish":true'* ]]; then
     "${COMPOSE[@]}" ps
-    echo "部署完成：http://服务器IP:${APP_PORT}"
+    echo "部署完成：http://服务器IP:${APP_PORT}（Pikafish 已启用）"
     exit 0
   fi
   sleep 2
 done
 
-echo "健康检查超时，最近日志如下："
+echo "健康检查超时或 Pikafish 未启用，最近日志如下："
 "${COMPOSE[@]}" logs --tail=120 koko postgres
 exit 1

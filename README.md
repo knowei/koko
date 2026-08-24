@@ -52,12 +52,13 @@ git pull --ff-only
 ./scripts/deploy.sh
 ```
 
-部署脚本会先备份 PostgreSQL，再重新构建容器并等待健康检查。不要执行 `docker compose down -v`，否则会删除数据库卷。完整说明参见 [DEPLOY.md](DEPLOY.md)。
+部署脚本会先备份 PostgreSQL，再重新构建容器并等待健康检查。镜像构建时会从官方发布页下载固定版本的 Pikafish 与 NNUE；首次构建会比普通更新多下载约 55 MB。部署完成信息中出现“Pikafish 已启用”才表示专业象棋引擎运行正常。不要执行 `docker compose down -v`，否则会删除数据库卷。完整说明参见 [DEPLOY.md](DEPLOY.md)。
 
 ## 目录结构
 
 - `src/`：React 页面、组件、角色数据与 Zustand 状态
 - `server/`：模型代理、账号、云存档和服务端钱包 API
+- `server/pikafish.ts`：服务端中国象棋 UCI 引擎适配器
 - `public/`：立绘等静态资源
 - `scripts/`：服务器部署脚本
 - `live2d-source/`：正式 Live2D 的后续制作资料
@@ -68,3 +69,4 @@ git pull --ff-only
 - 自定义供应商密钥仅用于当前设备与模型代理请求。
 - 公开部署应配置域名与 HTTPS；直接使用公网 IP + HTTP 只适合个人测试。
 - 成人内容入口目前不向用户展示，相关内容仍受模型供应商政策与产品年龄边界约束。
+- Pikafish 按 GPLv3 使用，镜像内保留其 `Copying.txt`、README 和 NNUE 许可证；项目未修改引擎源码。

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useStore } from "@/store/companionStore";
 import { Avatar } from "@/components/Avatar";
 import { EXPRESSION_MAP } from "@/lib/messageParser";
+import { apiUrl } from "@/lib/api";
 
 // Games Engines
 import {
@@ -331,10 +332,24 @@ export function GameZoneScreen({ onBack }: GameZoneScreenProps) {
         setXiangqiTurn("black");
         setIsAiThinking(true);
 
-        setTimeout(() => {
-          const aiMove = getBestXiangqiMove(newBoard, difficulty);
+        setTimeout(async () => {
+          let aiMove: XiangqiMove | null = null;
+          try {
+            const response = await fetch(apiUrl("/api/games/xiangqi/move"), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ board: newBoard, difficulty }),
+              signal: AbortSignal.timeout(8_000),
+            });
+            if (!response.ok) throw new Error(`Pikafish unavailable: ${response.status}`);
+            const data = await response.json() as { move?: XiangqiMove };
+            aiMove = data.move || null;
+          } catch {
+            aiMove = getBestXiangqiMove(newBoard, difficulty);
+          }
           if (!aiMove) {
             setXiangqiWinner("red");
+            setIsAiThinking(false);
             return;
           }
 
