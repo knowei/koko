@@ -38,6 +38,15 @@ $env:JAVA_HOME="D:\environ\Java\jdk-21"
 npm run build:apk
 ```
 
+## GitHub 自动构建
+
+推送任意分支到 GitHub 后，Actions 会并行构建 Windows 安装包和 Android APK。构建完成后，在仓库的 **Actions** 页面打开对应任务，在 **Artifacts** 区域下载：
+
+- `koko-windows-<提交号>`：Windows `.exe` 安装包。
+- `koko-android-<提交号>`：Android 调试版 `.apk`。
+
+也可以在 Actions 页面手动运行 `Build desktop and Android apps`。构建产物保留 14 天；当前 APK 使用调试签名，正式公开发布前需要配置专用 Android 签名证书。
+
 测试安装包生成在 `android/app/build/outputs/apk/debug/app-debug.apk`。首次打开后在设置中填写服务器地址，例如 `http://服务器IP:8080`；正式公开发布前应配置 HTTPS 和独立签名证书。
 
 ## 服务器部署
