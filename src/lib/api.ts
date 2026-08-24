@@ -17,12 +17,18 @@ export function getApiBaseUrl(): string {
     return envUrl.trim().replace(/\/+$/, "");
   }
 
-  // 3. Desktop Electron fallback when running locally from file://
+  // 3. Android/iOS Capacitor package: use the address configured in Settings.
+  // Without one, requests remain local and Settings can still be opened to configure it.
+  if (typeof window !== "undefined" && window.location.protocol === "capacitor:") {
+    return "";
+  }
+
+  // 4. Desktop Electron fallback when running locally from file://
   if (typeof window !== "undefined" && window.location.protocol === "file:") {
     return "http://localhost:8787";
   }
 
-  // 4. Default: Same-origin relative path
+  // 5. Default: Same-origin relative path
   return "";
 }
 

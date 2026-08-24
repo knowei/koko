@@ -19,10 +19,14 @@
     "desktop": "electron electron/main.cjs",
     "dev:desktop": "concurrently -n web,api,pet -c cyan,magenta,yellow \"vite\" \"tsx watch server/index.ts\" \"electron electron/main.cjs\"",
     "build:installer": "npm run build && electron-builder --win nsis",
+    "mobile:sync": "npm run build && cap sync android",
+    "build:apk": "npm run mobile:sync && cd android && gradlew.bat assembleDebug",
     "build:packager": "npm run build && npx @electron/packager . \"妹妹陪伴\" --platform=win32 --arch=x64 --out=release --overwrite --icon=\"build/koko-app-icon.ico\" --ignore=\"^[/\\\\](src|server|scripts|scratch|docs|backups|live2d-source|release|dist-installer|node_modules|\\.git)\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
@@ -33,6 +37,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^22.9.0",
@@ -64,7 +69,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },

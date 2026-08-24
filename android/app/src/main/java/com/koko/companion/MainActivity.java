@@ -1,0 +1,5 @@
+package com.koko.companion;
+
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {}

@@ -102,9 +102,10 @@ export function StickyDesktopWidget() {
             </div>
           </header>
 
-          {note ? (
-            <>
-              {note.content && <p className="sticky-desktop-content">{note.content}</p>}
+            {note ? (
+              <>
+                {note.reminderEnabled && note.reminderDate && <div className="sticky-desktop-reminder">🔔 {note.reminderDate} · 可可会提醒</div>}
+                {note.content && <p className="sticky-desktop-content">{note.content}</p>}
               <div className="sticky-desktop-todos">
                 {note.todos.length === 0 && <p className="sticky-desktop-empty">还没有待办，随手记下一件吧。</p>}
                 {note.todos.map((todo) => (

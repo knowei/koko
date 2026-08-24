@@ -30,6 +30,8 @@ export function StickyNotesModal({ isOpen, onClose }: Props) {
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newColor, setNewColor] = useState<StickyNote["color"]>("pink");
+  const [rememberAndRemind, setRememberAndRemind] = useState(false);
+  const [newReminderDate, setNewReminderDate] = useState("");
 
   const [activeTodoInputNoteId, setActiveTodoInputNoteId] = useState<string | null>(null);
   const [newTodoText, setNewTodoText] = useState("");
@@ -39,9 +41,11 @@ export function StickyNotesModal({ isOpen, onClose }: Props) {
   const handleCreateNote = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() && !newContent.trim()) return;
-    addStickyNote(newTitle.trim() || "随手记", newContent.trim(), newColor);
+    addStickyNote(newTitle.trim() || "随手记", newContent.trim(), newColor, rememberAndRemind ? newReminderDate || null : null);
     setNewTitle("");
     setNewContent("");
+    setRememberAndRemind(false);
+    setNewReminderDate("");
     setIsCreating(false);
   };
 
@@ -129,6 +133,15 @@ export function StickyNotesModal({ isOpen, onClose }: Props) {
                 ))}
               </div>
             </div>
+            <div className="sticky-reminder-editor">
+              <label>
+                <input type="checkbox" checked={rememberAndRemind} onChange={(event) => setRememberAndRemind(event.target.checked)} />
+                <span>让{companionName}记住并主动提醒</span>
+              </label>
+              {rememberAndRemind && (
+                <input type="date" value={newReminderDate} min={new Date().toISOString().slice(0, 10)} onChange={(event) => setNewReminderDate(event.target.value)} required />
+              )}
+            </div>
             <div className="sticky-form-footer">
               <button type="submit" className="sticky-submit-btn">
                 📌 贴在桌面
@@ -170,6 +183,28 @@ export function StickyNotesModal({ isOpen, onClose }: Props) {
                 {note.content && (
                   <p className="note-body-text">{note.content}</p>
                 )}
+
+                <div className="note-reminder-row">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(note.reminderEnabled)}
+                      onChange={(event) => updateStickyNote(note.id, {
+                        reminderEnabled: event.target.checked,
+                        reminderDate: event.target.checked ? note.reminderDate || new Date().toISOString().slice(0, 10) : null,
+                        lastRemindedDate: undefined,
+                      })}
+                    />
+                    <span>{note.reminderEnabled ? `🧠 ${companionName}会记得` : `让${companionName}记住`}</span>
+                  </label>
+                  {note.reminderEnabled && (
+                    <input
+                      type="date"
+                      value={note.reminderDate || ""}
+                      onChange={(event) => updateStickyNote(note.id, { reminderDate: event.target.value || null, lastRemindedDate: undefined })}
+                    />
+                  )}
+                </div>
 
                 {/* Todo Sub-tasks */}
                 <div className="note-todos-section">
@@ -227,6 +262,7 @@ export function StickyNotesModal({ isOpen, onClose }: Props) {
                 </div>
 
                 <div className="note-footer">
+                  {note.reminderEnabled && note.reminderDate && <span className="note-reminder-badge">🔔 {note.reminderDate}</span>}
                   <span className="note-time">
                     {new Date(note.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>

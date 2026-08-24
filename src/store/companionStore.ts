@@ -80,6 +80,9 @@ export interface StickyNote {
   color: "pink" | "yellow" | "green" | "purple" | "blue";
   todos: TodoItem[];
   pinned?: boolean;
+  reminderEnabled?: boolean;
+  reminderDate?: string | null;
+  lastRemindedDate?: string;
   updatedAt: number;
 }
 export interface FocusStats {
@@ -246,7 +249,7 @@ interface State {
   updateMemory: (id: string, text: string, kind: MemoryKind) => void;
   togglePinMemory: (id: string) => void;
 
-  addStickyNote: (title: string, content?: string, color?: StickyNote["color"]) => string;
+  addStickyNote: (title: string, content?: string, color?: StickyNote["color"], reminderDate?: string | null) => string;
   updateStickyNote: (id: string, patch: Partial<StickyNote>) => void;
   deleteStickyNote: (id: string) => void;
   addTodoToNote: (noteId: string, text: string) => void;
@@ -486,7 +489,7 @@ export const useStore = create<State>()(
         memories: s.memories.map((m) => m.id === id ? { ...m, pinned: !m.pinned } : m)
       })),
       removeMemory: (id) => set((s) => ({ memories: s.memories.filter((item) => item.id !== id) })),
-      addStickyNote: (title, content = "", color = "pink") => {
+      addStickyNote: (title, content = "", color = "pink", reminderDate = null) => {
         const id = uid();
         set((s) => ({
           stickyNotes: [
@@ -497,6 +500,8 @@ export const useStore = create<State>()(
               color,
               todos: [],
               pinned: false,
+              reminderEnabled: Boolean(reminderDate),
+              reminderDate,
               updatedAt: Date.now()
             },
             ...s.stickyNotes
@@ -692,7 +697,24 @@ export const useStore = create<State>()(
         const due = state.agreements
           .filter((agreement) => agreement.status === "pending" && agreement.dueDate && agreement.dueDate <= today && agreement.lastRemindedDate !== today)
           .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0];
-        if (!due) return;
+        if (!due) {
+          const note = state.stickyNotes
+            .filter((item) => item.reminderEnabled && item.reminderDate && item.reminderDate <= today && item.lastRemindedDate !== today)
+            .sort((a, b) => String(a.reminderDate).localeCompare(String(b.reminderDate)))[0];
+          if (!note) return;
+          const todoText = note.todos.filter((item) => !item.done).slice(0, 4).map((item) => item.text).join("、");
+          const detail = [note.content, todoText ? `待办：${todoText}` : ""].filter(Boolean).join("；").slice(0, 180);
+          const overdue = note.reminderDate! < today;
+          set((s) => ({
+            stickyNotes: s.stickyNotes.map((item) => item.id === note.id ? { ...item, lastRemindedDate: today } : item),
+            messages: [...s.messages, {
+              id: uid(), role: "user", content: "", ts: Date.now(), kind: "hidden",
+              hiddenPrompt: `${overdue ? "这个备忘已经到期" : "今天是备忘日期"}：“${note.title}”${detail ? `（${detail}）` : ""}。这是用户主动交给你记住的事项，请像亲近的妹妹一样简短自然地提醒，不要责备，也不要声称看不到便签。`,
+            }],
+          }));
+          void get()._runTurn();
+          return;
+        }
         const overdue = due.dueDate! < today;
         set((s) => ({
           agreements: s.agreements.map((agreement) => agreement.id === due.id ? { ...agreement, lastRemindedDate: today } : agreement),
@@ -1220,11 +1242,20 @@ export const useStore = create<State>()(
           .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"))
           .slice(0, 3)
           .map((item) => ({ id: `agreement-${item.id}`, kind: "important", ts: item.createdAt, text: `你们的待完成约定：${item.text}${item.dueDate ? `（预计 ${item.dueDate}）` : ""}` }));
+        const reminderMemories: CompanionMemory[] = state.stickyNotes
+          .filter((note) => note.reminderEnabled)
+          .slice(0, 12)
+          .map((note) => ({
+            id: `memo-${note.id}`,
+            kind: "important",
+            ts: note.updatedAt,
+            text: `用户交给你记住的备忘：${note.title}${note.content ? `；${note.content.slice(0, 80)}` : ""}${note.reminderDate ? `（提醒日期 ${note.reminderDate}）` : ""}`,
+          }));
         await streamChat(
           { context: {
             affinity: state.affinity, mood: state.mood, earlierDigest: state.rollingSummary || earlierDigest(history),
             personality: state.personality, replyStyle: state.replyStyle, hour: new Date().getHours(),
-            profile: state.profile, weather: state.weather, adultMode: state.adultMode, memories: [...relevantMemories, ...experienceMemories, ...diaryMemories, ...agreementMemories],
+            profile: state.profile, weather: state.weather, adultMode: state.adultMode, memories: [...relevantMemories, ...experienceMemories, ...diaryMemories, ...agreementMemories, ...reminderMemories],
           }, messages: apiMessages, provider: state.provider },
           {
             onDelta: (t) =>

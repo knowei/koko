@@ -29,6 +29,17 @@ npm run typecheck
 npm run build
 ```
 
+## Android APK
+
+Android 客户端通过 Capacitor 复用现有手机布局，需要 Java 21 与 Android SDK 36。首次或前端更新后执行：
+
+```powershell
+$env:JAVA_HOME="D:\environ\Java\jdk-21"
+npm run build:apk
+```
+
+测试安装包生成在 `android/app/build/outputs/apk/debug/app-debug.apk`。首次打开后在设置中填写服务器地址，例如 `http://服务器IP:8080`；正式公开发布前应配置 HTTPS 和独立签名证书。
+
 ## 服务器部署
 
 服务器需要 Docker 26+ 与 Docker Compose 插件。首次部署：
