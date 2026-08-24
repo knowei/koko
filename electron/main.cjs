@@ -7,9 +7,14 @@ app.commandLine.appendSwitch('enable-transparent-visuals');
 app.commandLine.appendSwitch('disable-gpu-vsync');
 
 let mainWindow = null;
+let stickyWindow = null;
 let tray = null;
 let currentMode = 'full'; // 'full' or 'mini'
 let isQuitting = false;
+let stickyAnimation = null;
+
+const STICKY_COLLAPSED = { width: 52, height: 86 };
+const STICKY_EXPANDED = { width: 352, height: 440 };
 
 function getFullWindowSize(display = screen.getPrimaryDisplay()) {
   const { width, height } = display.workAreaSize;
@@ -87,6 +92,7 @@ async function createWindow() {
   }
 
   createTray();
+  createStickyWindow(isDevReady ? devServerUrl : null);
 
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
@@ -100,6 +106,82 @@ async function createWindow() {
   });
 }
 
+function getStickyBounds(expanded = false) {
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const { x, y, width } = display.workArea;
+  const size = expanded ? STICKY_EXPANDED : STICKY_COLLAPSED;
+  return {
+    x: x + width - size.width,
+    y: y + 24,
+    width: size.width,
+    height: size.height,
+  };
+}
+
+function animateStickyWindow(expanded) {
+  if (!stickyWindow || stickyWindow.isDestroyed()) return;
+  if (stickyAnimation) clearInterval(stickyAnimation);
+  const from = stickyWindow.getBounds();
+  const to = getStickyBounds(expanded);
+  const startedAt = Date.now();
+  const duration = 180;
+  stickyAnimation = setInterval(() => {
+    if (!stickyWindow || stickyWindow.isDestroyed()) {
+      clearInterval(stickyAnimation);
+      stickyAnimation = null;
+      return;
+    }
+    const progress = Math.min(1, (Date.now() - startedAt) / duration);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    stickyWindow.setBounds({
+      x: Math.round(from.x + (to.x - from.x) * eased),
+      y: Math.round(from.y + (to.y - from.y) * eased),
+      width: Math.round(from.width + (to.width - from.width) * eased),
+      height: Math.round(from.height + (to.height - from.height) * eased),
+    });
+    if (progress >= 1) {
+      clearInterval(stickyAnimation);
+      stickyAnimation = null;
+    }
+  }, 16);
+}
+
+function createStickyWindow(devServerUrl = null) {
+  if (stickyWindow) return;
+  stickyWindow = new BrowserWindow({
+    ...getStickyBounds(false),
+    transparent: true,
+    backgroundColor: '#00000000',
+    frame: false,
+    hasShadow: false,
+    resizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    show: false,
+    icon: getAppIconPath(),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: false,
+    },
+  });
+
+  if (!app.isPackaged && devServerUrl) {
+    stickyWindow.loadURL(`${devServerUrl}?mode=sticky`);
+  } else {
+    stickyWindow.loadFile(path.join(__dirname, '../dist/index.html'), { query: { mode: 'sticky' } });
+  }
+
+  stickyWindow.once('ready-to-show', () => {
+    stickyWindow?.showInactive();
+    refreshTrayMenu();
+  });
+  stickyWindow.on('closed', () => {
+    stickyWindow = null;
+  });
+}
+
 function showWindow(mode = 'full', action = null) {
   if (!mainWindow) return;
   mainWindow.show();
@@ -108,6 +190,18 @@ function showWindow(mode = 'full', action = null) {
   if (action) {
     mainWindow.webContents.send('tray-action', action);
   }
+}
+
+function setStickyVisible(visible) {
+  if (!stickyWindow) return;
+  stickyWindow.webContents.send('sticky-window-reset');
+  if (visible) {
+    stickyWindow.setBounds(getStickyBounds(false));
+    stickyWindow.showInactive();
+  } else {
+    stickyWindow.hide();
+  }
+  refreshTrayMenu();
 }
 
 function setWindowMode(mode) {
@@ -143,7 +237,21 @@ function createTray() {
   } catch {}
 
   if (tray) {
-    const contextMenu = Menu.buildFromTemplate([
+    refreshTrayMenu();
+
+    tray.setToolTip('可可 · 桌面陪伴伴侣');
+    tray.on('click', () => {
+      if (mainWindow) {
+        if (mainWindow.isVisible()) mainWindow.focus();
+        else showWindow(currentMode);
+      }
+    });
+  }
+}
+
+function refreshTrayMenu() {
+  if (!tray) return;
+  const contextMenu = Menu.buildFromTemplate([
       {
         label: '可可 · AI 桌面陪伴伴侣',
         enabled: false,
@@ -159,6 +267,12 @@ function createTray() {
       },
       { type: 'separator' },
       { label: '📌 打开便签', click: () => showWindow('full', 'sticky') },
+      {
+        label: '📝 桌面悬浮便签',
+        type: 'checkbox',
+        checked: Boolean(stickyWindow?.isVisible()),
+        click: (item) => setStickyVisible(item.checked),
+      },
       { label: '🍅 开始专注', click: () => showWindow('full', 'focus') },
       { label: '💧 作息与喝水', click: () => showWindow('full', 'life') },
       { label: '⚙ 打开设置', click: () => showWindow('full', 'settings') },
@@ -171,16 +285,7 @@ function createTray() {
         },
       },
     ]);
-
-    tray.setToolTip('可可 · 桌面陪伴伴侣');
-    tray.setContextMenu(contextMenu);
-    tray.on('click', () => {
-      if (mainWindow) {
-        if (mainWindow.isVisible()) mainWindow.focus();
-        else showWindow(currentMode);
-      }
-    });
-  }
+  tray.setContextMenu(contextMenu);
 }
 
 // IPC Handlers
@@ -194,6 +299,18 @@ ipcMain.on('window-minimize', () => {
 
 ipcMain.on('window-close', () => {
   if (mainWindow) mainWindow.hide();
+});
+
+ipcMain.on('sticky-window-expand', (event, expanded) => {
+  if (event.sender === stickyWindow?.webContents) animateStickyWindow(Boolean(expanded));
+});
+
+ipcMain.on('sticky-window-hide', (event) => {
+  if (event.sender === stickyWindow?.webContents) setStickyVisible(false);
+});
+
+ipcMain.on('sticky-open-manager', (event) => {
+  if (event.sender === stickyWindow?.webContents) showWindow('full', 'sticky');
 });
 
 // Hardware-level screen capture handler for Electron
