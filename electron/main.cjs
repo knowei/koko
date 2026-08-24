@@ -10,6 +10,14 @@ let mainWindow = null;
 let tray = null;
 let currentMode = 'full'; // 'full' or 'mini'
 
+function getFullWindowSize(display = screen.getPrimaryDisplay()) {
+  const { width, height } = display.workAreaSize;
+  return {
+    width: Math.max(900, Math.min(1280, width - 32)),
+    height: Math.max(680, Math.min(900, height - 32)),
+  };
+}
+
 function waitForServer(url, timeoutMs = 15000) {
   const startTime = Date.now();
   return new Promise((resolve) => {
@@ -39,13 +47,13 @@ function waitForServer(url, timeoutMs = 15000) {
 
 async function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenW, height: screenH } = primaryDisplay.workAreaSize;
+  const fullWindowSize = getFullWindowSize(primaryDisplay);
 
   mainWindow = new BrowserWindow({
-    width: 1040,
-    height: 760,
-    minWidth: 300,
-    minHeight: 400,
+    width: fullWindowSize.width,
+    height: fullWindowSize.height,
+    minWidth: 900,
+    minHeight: 680,
     center: true,
     transparent: true,
     backgroundColor: '#00000000',
@@ -92,8 +100,9 @@ function setWindowMode(mode) {
     mainWindow.setResizable(false);
   } else {
     // Full Companion Window Mode (centered desktop app)
+    const fullWindowSize = getFullWindowSize(primaryDisplay);
     mainWindow.setResizable(true);
-    mainWindow.setSize(1040, 760, true);
+    mainWindow.setSize(fullWindowSize.width, fullWindowSize.height, true);
     mainWindow.center();
     mainWindow.setAlwaysOnTop(false);
   }

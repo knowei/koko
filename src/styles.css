@@ -44,8 +44,8 @@ body {
 }
 
 .phone {
-  width: min(920px, 100%);
-  height: min(760px, 100%);
+  width: min(1280px, 100%);
+  height: min(900px, 100%);
   background: var(--panel);
   border: 2px solid var(--line);
   border-radius: 26px;
@@ -63,7 +63,7 @@ body {
   background: linear-gradient(180deg, #fff6ef, #fdeee4);
   border-bottom: 2px dashed var(--line);
 }
-.who { display: flex; align-items: center; gap: 12px; }
+.who { display: flex; align-items: center; gap: 12px; flex: none; min-width: 0; }
 .avatar {
   display: block; flex: none; overflow: hidden; border-radius: 50%; background: #fff3ec;
   border: 2px solid #e9a0ad; filter: drop-shadow(0 3px 5px rgba(200,120,120,.2));
@@ -81,8 +81,38 @@ body {
 .top-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
   flex-wrap: nowrap;
+  min-width: 0;
+}
+
+@media (max-width: 1200px) and (min-width: 641px) {
+  .topbar {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .who {
+    width: 154px;
+  }
+
+  .who-text {
+    min-width: 0;
+  }
+
+  .who-sub,
+  .weather-inline {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .top-actions {
+    flex: 1;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
 }
 
 /* 1. Main Navigation Segmented Control */

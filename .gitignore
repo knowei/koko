@@ -6,6 +6,7 @@ node_modules/
 dist/
 release/
 dist-installer/
+dist-installer-*/
 dist-desktop/
 *.tsbuildinfo
 backups/
