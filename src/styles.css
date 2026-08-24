@@ -6103,6 +6103,72 @@ input:checked + .slider-round:before {
   align-self: flex-end;
 }
 
+/* Mobile chat shell: keep PC navigation out of the compact header. */
+.mobile-composer-tool { display: none !important; }
+
+@media (max-width: 640px) {
+  .topbar {
+    min-height: 72px;
+    padding: max(10px, env(safe-area-inset-top)) 14px 10px;
+    gap: 10px;
+    overflow: visible;
+  }
+  .who { flex: 1; gap: 10px; min-width: 0; }
+  .avatar { width: 48px; height: 48px; }
+  .avatar-header-box { flex: none; }
+  .who-text { min-width: 0; }
+  .who-name { font-size: 20px; }
+  .routine-inline { margin-top: 2px; padding: 1px 6px; font-size: 9px; }
+  .who-sub { max-width: none; overflow: hidden; font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+  .weather-inline { overflow: hidden; font-size: 9.5px; white-space: nowrap; text-overflow: ellipsis; }
+
+  .top-actions { flex: none; min-width: auto; gap: 0; }
+  .top-actions .nav-pill-group,
+  .top-actions .tools-pill-group,
+  .top-actions .account-top-btn,
+  .top-actions .reset-btn,
+  .desktop-win-controls { display: none !important; }
+  .system-icon-group { padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .system-icon-group .system-btn { width: 40px; height: 40px; padding: 0; border-radius: 13px; font-size: 18px; }
+
+  .affinity-wrap { margin: 5px 14px 0; height: 14px; }
+  .affinity-num { font-size: 10px; }
+  .stage { padding: 8px 10px; }
+  .chat { border-radius: 20px; }
+  .msg-list { padding: 12px 10px; }
+  .hint-bubble { max-width: 94%; padding: 10px 12px; font-size: 12px; line-height: 1.55; }
+
+  .dynamic-suggestions-bar { gap: 6px; padding: 6px 8px; }
+  .suggestion-pill { flex: none; padding: 5px 10px; font-size: 11.5px; }
+
+  .composer {
+    min-height: 54px;
+    padding: 7px 8px max(7px, env(safe-area-inset-bottom));
+    gap: 7px;
+  }
+  .composer .action-popover-btn { width: 40px; height: 40px; border-radius: 13px; font-size: 16px; }
+  .composer > .voice-record-btn,
+  .composer > .quick-tts-icon-btn { display: none; }
+  .action-popover-menu .mobile-composer-tool { display: flex !important; }
+  .composer textarea {
+    height: 40px;
+    min-height: 40px;
+    max-height: 88px;
+    padding: 9px 11px;
+    border-radius: 13px;
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .send-btn { min-width: 62px; min-height: 40px; padding: 0 14px; border-radius: 13px; font-size: 14px; }
+
+  .mobile-nav {
+    min-height: 58px;
+    padding: 6px 4px max(6px, env(safe-area-inset-bottom));
+  }
+  .mobile-nav button { font-size: 19px; }
+  .mobile-nav button span { font-size: 10px; }
+}
+
 
 
 

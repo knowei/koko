@@ -322,13 +322,31 @@ export function ChatScreen({
                   🎮 双人娱乐坊
                 </button>
               )}
+              <button
+                type="button"
+                className="mobile-composer-tool"
+                disabled={streaming}
+                onPointerDown={handleMicPointerDown}
+                onPointerMove={handleMicPointerMove}
+                onPointerUp={handleMicPointerUp}
+                onPointerCancel={handleMicPointerCancel}
+              >
+                {recordingMode === "click" ? "⏹ 停止语音输入" : "🎙️ 语音输入"}
+              </button>
+              <button
+                type="button"
+                className="mobile-composer-tool"
+                onClick={() => setTtsSettings({ autoPlay: !ttsSettings.autoPlay })}
+              >
+                {ttsSettings.autoPlay ? "🔊 关闭自动朗读" : "🔇 开启自动朗读"}
+              </button>
             </div>
           )}
         </div>
 
         <textarea
           value={draft}
-          placeholder={recordingMode === "click" ? "🔴 正在聆听您的说话内容…" : `跟${profile.name || "妹妹"}说点什么…（Enter 发送，Shift+Enter 换行）`}
+          placeholder={recordingMode === "click" ? "正在聆听…" : ""}
           onChange={(e) => {
             setDraft(e.target.value);
             if (showActions) setShowActions(false);
