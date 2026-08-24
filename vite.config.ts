@@ -8,9 +8,15 @@ export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(__dirname, "src") },
   },
+  optimizeDeps: {
+    entries: ["index.html"],
+  },
   server: {
     port: 5174,
     open: false,
+    watch: {
+      ignored: ["**/dist-installer*/**", "**/release/**", "**/scratch/**"],
+    },
     proxy: {
       "/api": {
         target: "http://localhost:8787",
