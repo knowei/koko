@@ -11,9 +11,7 @@ let stickyWindow = null;
 let tray = null;
 let currentMode = 'full'; // 'full' or 'mini'
 let isQuitting = false;
-let stickyAnimation = null;
 
-const STICKY_COLLAPSED = { width: 52, height: 86 };
 const STICKY_EXPANDED = { width: 352, height: 440 };
 
 function getFullWindowSize(display = screen.getPrimaryDisplay()) {
@@ -106,50 +104,21 @@ async function createWindow() {
   });
 }
 
-function getStickyBounds(expanded = false) {
+function getStickyBounds() {
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const { x, y, width } = display.workArea;
-  const size = expanded ? STICKY_EXPANDED : STICKY_COLLAPSED;
   return {
-    x: x + width - size.width,
+    x: x + width - STICKY_EXPANDED.width,
     y: y + 24,
-    width: size.width,
-    height: size.height,
+    width: STICKY_EXPANDED.width,
+    height: STICKY_EXPANDED.height,
   };
-}
-
-function animateStickyWindow(expanded) {
-  if (!stickyWindow || stickyWindow.isDestroyed()) return;
-  if (stickyAnimation) clearInterval(stickyAnimation);
-  const from = stickyWindow.getBounds();
-  const to = getStickyBounds(expanded);
-  const startedAt = Date.now();
-  const duration = 180;
-  stickyAnimation = setInterval(() => {
-    if (!stickyWindow || stickyWindow.isDestroyed()) {
-      clearInterval(stickyAnimation);
-      stickyAnimation = null;
-      return;
-    }
-    const progress = Math.min(1, (Date.now() - startedAt) / duration);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    stickyWindow.setBounds({
-      x: Math.round(from.x + (to.x - from.x) * eased),
-      y: Math.round(from.y + (to.y - from.y) * eased),
-      width: Math.round(from.width + (to.width - from.width) * eased),
-      height: Math.round(from.height + (to.height - from.height) * eased),
-    });
-    if (progress >= 1) {
-      clearInterval(stickyAnimation);
-      stickyAnimation = null;
-    }
-  }, 16);
 }
 
 function createStickyWindow(devServerUrl = null) {
   if (stickyWindow) return;
   stickyWindow = new BrowserWindow({
-    ...getStickyBounds(false),
+    ...getStickyBounds(),
     transparent: true,
     backgroundColor: '#00000000',
     frame: false,
@@ -166,6 +135,7 @@ function createStickyWindow(devServerUrl = null) {
       webSecurity: false,
     },
   });
+  stickyWindow.setIgnoreMouseEvents(true, { forward: true });
 
   if (!app.isPackaged && devServerUrl) {
     stickyWindow.loadURL(`${devServerUrl}?mode=sticky`);
@@ -174,6 +144,7 @@ function createStickyWindow(devServerUrl = null) {
   }
 
   stickyWindow.once('ready-to-show', () => {
+    stickyWindow?.setIgnoreMouseEvents(true, { forward: true });
     stickyWindow?.showInactive();
     refreshTrayMenu();
   });
@@ -196,7 +167,8 @@ function setStickyVisible(visible) {
   if (!stickyWindow) return;
   stickyWindow.webContents.send('sticky-window-reset');
   if (visible) {
-    stickyWindow.setBounds(getStickyBounds(false));
+    stickyWindow.setBounds(getStickyBounds());
+    stickyWindow.setIgnoreMouseEvents(true, { forward: true });
     stickyWindow.showInactive();
   } else {
     stickyWindow.hide();
@@ -302,7 +274,16 @@ ipcMain.on('window-close', () => {
 });
 
 ipcMain.on('sticky-window-expand', (event, expanded) => {
-  if (event.sender === stickyWindow?.webContents) animateStickyWindow(Boolean(expanded));
+  if (event.sender !== stickyWindow?.webContents || !stickyWindow) return;
+  if (expanded) {
+    stickyWindow.setIgnoreMouseEvents(false);
+  } else {
+    setTimeout(() => {
+      if (stickyWindow && !stickyWindow.isDestroyed()) {
+        stickyWindow.setIgnoreMouseEvents(true, { forward: true });
+      }
+    }, 220);
+  }
 });
 
 ipcMain.on('sticky-window-hide', (event) => {

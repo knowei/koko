@@ -9,6 +9,16 @@ const COLOR_LABELS: Record<StickyNote["color"], string> = {
   blue: "晴空蓝",
 };
 
+const DESKTOP_THEMES = [
+  { key: "pink", label: "甜心粉" },
+  { key: "cream", label: "奶油杏" },
+  { key: "mint", label: "薄荷绿" },
+  { key: "sky", label: "晴空蓝" },
+  { key: "lavender", label: "薰衣紫" },
+  { key: "charcoal", label: "夜色灰" },
+] as const;
+type DesktopTheme = typeof DESKTOP_THEMES[number]["key"];
+
 export function StickyDesktopWidget() {
   const stickyNotes = useStore((state) => state.stickyNotes);
   const toggleTodoItem = useStore((state) => state.toggleTodoItem);
@@ -17,6 +27,10 @@ export function StickyDesktopWidget() {
   const [locked, setLocked] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [todoText, setTodoText] = useState("");
+  const [theme, setTheme] = useState<DesktopTheme>(() => {
+    const saved = localStorage.getItem("koko-sticky-desktop-theme");
+    return DESKTOP_THEMES.some((item) => item.key === saved) ? saved as DesktopTheme : "pink";
+  });
   const collapseTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -60,25 +74,29 @@ export function StickyDesktopWidget() {
     setTodoText("");
   };
 
+  const changeTheme = (nextTheme: DesktopTheme) => {
+    setTheme(nextTheme);
+    localStorage.setItem("koko-sticky-desktop-theme", nextTheme);
+  };
+
   return (
     <div
-      className={`sticky-desktop-root ${expanded ? "is-expanded" : "is-collapsed"}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      className={`sticky-desktop-root sticky-theme-${theme} ${expanded ? "is-expanded" : "is-collapsed"}`}
     >
-      {!expanded ? (
-        <button className="sticky-edge-tab" onClick={() => setWindowExpanded(true)} title="展开桌面便签">
-          <span>📌</span>
-          <strong>便签</strong>
-        </button>
-      ) : (
-        <section className={`sticky-desktop-card note-color-${note?.color || "pink"}`}>
+      <button className="sticky-edge-tab" onMouseEnter={handleMouseEnter} onClick={() => setWindowExpanded(true)} title="展开桌面便签">
+        <span>📌</span>
+        <strong>便签</strong>
+      </button>
+      <section className={`sticky-desktop-card note-color-${note?.color || "pink"}`} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
           <header className="sticky-desktop-head">
             <div>
               <span className="sticky-desktop-kicker">{note ? COLOR_LABELS[note.color] : "可可便签"}</span>
               <h2>{note?.title || "还没有便签"}</h2>
             </div>
             <div className="sticky-desktop-actions">
+              <select value={theme} onChange={(event) => changeTheme(event.target.value as DesktopTheme)} title="切换便签主题">
+                {DESKTOP_THEMES.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+              </select>
               <button onClick={() => setLocked((value) => !value)} title={locked ? "恢复自动收起" : "固定展开"}>{locked ? "🔒" : "🔓"}</button>
               <button onClick={() => window.electronAPI?.hideStickyWindow?.()} title="隐藏桌面便签">×</button>
             </div>
@@ -121,8 +139,7 @@ export function StickyDesktopWidget() {
             </div>
             <button className="sticky-desktop-manage" onClick={() => window.electronAPI?.openStickyManager?.()}>查看全部</button>
           </footer>
-        </section>
-      )}
+      </section>
     </div>
   );
 }
