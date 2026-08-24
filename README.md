@@ -47,6 +47,15 @@ npm run build:apk
 
 也可以在 Actions 页面手动运行 `Build desktop and Android apps`。构建产物保留 14 天；当前 APK 使用调试签名，正式公开发布前需要配置专用 Android 签名证书。
 
+发布正式下载版本时，推送以 `v` 开头的版本标签，例如：
+
+```bash
+git tag v0.2.2
+git push github v0.2.2
+```
+
+标签构建通过后会自动创建 GitHub Release，并把 EXE 和 APK 作为永久发布附件上传。流程使用仓库自动提供的 `GITHUB_TOKEN`，无需配置 Personal Access Token。
+
 测试安装包生成在 `android/app/build/outputs/apk/debug/app-debug.apk`。首次打开后在设置中填写服务器地址，例如 `http://服务器IP:8080`；正式公开发布前应配置 HTTPS 和独立签名证书。
 
 ## 服务器部署
