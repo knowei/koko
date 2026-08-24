@@ -8,8 +8,8 @@ RUN apt-get update \
   && curl -fsSL "https://github.com/official-pikafish/Pikafish/releases/download/Pikafish-${PIKAFISH_VERSION}/Pikafish.${PIKAFISH_VERSION}.7z" -o /tmp/pikafish.7z \
   && echo "${PIKAFISH_ARCHIVE_SHA256}  /tmp/pikafish.7z" | sha256sum -c - \
   && mkdir -p /opt/pikafish \
-  && 7z e /tmp/pikafish.7z -o/opt/pikafish Linux/pikafish-avx2 pikafish.nnue Copying.txt NNUE-License.md README.md \
-  && chmod 0755 /opt/pikafish/pikafish-avx2
+  && 7z e /tmp/pikafish.7z -o/opt/pikafish Linux/pikafish-sse41-popcnt pikafish.nnue Copying.txt NNUE-License.md README.md \
+  && chmod 0755 /opt/pikafish/pikafish-sse41-popcnt
 
 FROM node:22-bookworm-slim
 
@@ -25,7 +25,7 @@ COPY --from=pikafish /opt/pikafish /opt/pikafish
 
 ENV NODE_ENV=production
 ENV PORT=8787
-ENV PIKAFISH_PATH=/opt/pikafish/pikafish-avx2
+ENV PIKAFISH_PATH=/opt/pikafish/pikafish-sse41-popcnt
 ENV PIKAFISH_WORKDIR=/opt/pikafish
 
 EXPOSE 8787
