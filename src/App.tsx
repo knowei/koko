@@ -26,6 +26,7 @@ declare global {
       close: () => void;
       captureScreenFrame?: () => Promise<string | null>;
       onWindowModeChange: (cb: (mode: "full" | "mini") => void) => void;
+      onTrayAction?: (cb: (action: "sticky" | "focus" | "life" | "settings") => void) => () => void;
     };
   }
 }
@@ -64,6 +65,16 @@ export default function App() {
         setIsMiniCompanion(mode === "mini");
       });
     }
+  }, []);
+
+  useEffect(() => {
+    return window.electronAPI?.onTrayAction?.((action) => {
+      setIsMiniCompanion(false);
+      if (action === "sticky") setShowStickyModal(true);
+      if (action === "focus") setShowFocusModal(true);
+      if (action === "life") setShowLifeModal(true);
+      if (action === "settings") setShowSettings(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -157,6 +168,7 @@ export default function App() {
   return (
     <div className="app">
       <div className="phone">
+        {window.electronAPI?.isElectron && <div className="desktop-drag-strip" title="按住这里拖动窗口" />}
         <header className="topbar">
           <div className="who">
             <div className="avatar-header-box">

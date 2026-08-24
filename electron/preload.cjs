@@ -9,4 +9,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onWindowModeChange: (callback) => {
     ipcRenderer.on('window-mode-change', (event, mode) => callback(mode));
   },
+  onTrayAction: (callback) => {
+    const listener = (event, action) => callback(action);
+    ipcRenderer.on('tray-action', listener);
+    return () => ipcRenderer.removeListener('tray-action', listener);
+  },
 });

@@ -19,7 +19,7 @@
     "desktop": "electron electron/main.cjs",
     "dev:desktop": "concurrently -n web,api,pet -c cyan,magenta,yellow \"vite\" \"tsx watch server/index.ts\" \"electron electron/main.cjs\"",
     "build:installer": "npm run build && electron-builder --win nsis",
-    "build:packager": "npm run build && npx @electron/packager . \"妹妹陪伴\" --platform=win32 --arch=x64 --out=release --overwrite --ignore=\"^(src|server|scripts|scratch|docs|backups|live2d-source|release|dist-installer|node_modules|\\.git)\""
+    "build:packager": "npm run build && npx @electron/packager . \"妹妹陪伴\" --platform=win32 --arch=x64 --out=release --overwrite --ignore=\"^[/\\\\](src|server|scripts|scratch|docs|backups|live2d-source|release|dist-installer|node_modules|\\.git)\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

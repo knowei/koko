@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, Tray, Menu, ipcMain, session, desktopCapturer } = require('electron');
+const { app, BrowserWindow, screen, Tray, Menu, ipcMain, session, desktopCapturer, nativeImage } = require('electron');
 const path = require('node:path');
 const http = require('node:http');
 
@@ -9,6 +9,7 @@ app.commandLine.appendSwitch('disable-gpu-vsync');
 let mainWindow = null;
 let tray = null;
 let currentMode = 'full'; // 'full' or 'mini'
+let isQuitting = false;
 
 function getFullWindowSize(display = screen.getPrimaryDisplay()) {
   const { width, height } = display.workAreaSize;
@@ -69,7 +70,7 @@ async function createWindow() {
   });
 
   const devServerUrl = 'http://localhost:5174/';
-  const isDevReady = await waitForServer('http://localhost:5174/');
+  const isDevReady = !app.isPackaged && await waitForServer(devServerUrl);
 
   if (!app.isPackaged && isDevReady) {
     mainWindow.loadURL(devServerUrl);
@@ -80,9 +81,26 @@ async function createWindow() {
 
   createTray();
 
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
+
+function showWindow(mode = 'full', action = null) {
+  if (!mainWindow) return;
+  mainWindow.show();
+  setWindowMode(mode);
+  mainWindow.focus();
+  if (action) {
+    mainWindow.webContents.send('tray-action', action);
+  }
 }
 
 function setWindowMode(mode) {
@@ -113,8 +131,9 @@ function setWindowMode(mode) {
 function createTray() {
   if (tray) return;
   try {
-    const iconPath = path.join(__dirname, '../public/favicon.ico');
-    tray = new Tray(iconPath);
+    const traySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#f472b6"/><path d="M16 25S6 19.2 6 12.5C6 8.1 11.4 6 16 10.5 20.6 6 26 8.1 26 12.5 26 19.2 16 25 16 25Z" fill="white"/></svg>`;
+    const trayIcon = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(traySvg).toString('base64')}`).resize({ width: 32, height: 32 });
+    tray = new Tray(trayIcon);
   } catch {}
 
   if (tray) {
@@ -126,24 +145,22 @@ function createTray() {
       { type: 'separator' },
       {
         label: '完整伴侣工作台',
-        click: () => {
-          if (!mainWindow) return;
-          mainWindow.show();
-          setWindowMode('full');
-        },
+        click: () => showWindow('full'),
       },
       {
         label: '悬浮陪伴小窗',
-        click: () => {
-          if (!mainWindow) return;
-          mainWindow.show();
-          setWindowMode('mini');
-        },
+        click: () => showWindow('mini'),
       },
+      { type: 'separator' },
+      { label: '📌 打开便签', click: () => showWindow('full', 'sticky') },
+      { label: '🍅 开始专注', click: () => showWindow('full', 'focus') },
+      { label: '💧 作息与喝水', click: () => showWindow('full', 'life') },
+      { label: '⚙ 打开设置', click: () => showWindow('full', 'settings') },
       { type: 'separator' },
       {
         label: '退出可可陪伴',
         click: () => {
+          isQuitting = true;
           app.quit();
         },
       },
@@ -154,7 +171,7 @@ function createTray() {
     tray.on('click', () => {
       if (mainWindow) {
         if (mainWindow.isVisible()) mainWindow.focus();
-        else mainWindow.show();
+        else showWindow(currentMode);
       }
     });
   }
@@ -170,7 +187,7 @@ ipcMain.on('window-minimize', () => {
 });
 
 ipcMain.on('window-close', () => {
-  app.quit();
+  if (mainWindow) mainWindow.hide();
 });
 
 // Hardware-level screen capture handler for Electron
@@ -203,8 +220,12 @@ app.whenReady().then(() => {
   createWindow();
 });
 
+app.on('before-quit', () => {
+  isQuitting = true;
+});
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (process.platform === 'darwin') {
     app.quit();
   }
 });

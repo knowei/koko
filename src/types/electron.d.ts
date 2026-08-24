@@ -9,6 +9,7 @@ declare global {
       close: () => void;
       captureScreenFrame?: () => Promise<string | null>;
       onWindowModeChange: (cb: (mode: "full" | "mini") => void) => void;
+      onTrayAction?: (cb: (action: "sticky" | "focus" | "life" | "settings") => void) => () => void;
     };
     PIXI?: any;
     Live2D?: any;
