@@ -30,6 +30,42 @@ if [[ ${#AUTH_SECRET_VALUE} -lt 32 || "$AUTH_SECRET_VALUE" == *"请替换"* || "
   exit 1
 fi
 
+PIKAFISH_VERSION="2026-01-02"
+PIKAFISH_SHA256="84257063905615919fb4ee6a70273a94843bb6ec04c45e3ac706098838bc1a49"
+PIKAFISH_DIR="vendor/pikafish"
+PIKAFISH_ARCHIVE="$PIKAFISH_DIR/Pikafish.${PIKAFISH_VERSION}.7z"
+PIKAFISH_OFFICIAL_URL="https://github.com/official-pikafish/Pikafish/releases/download/Pikafish-${PIKAFISH_VERSION}/Pikafish.${PIKAFISH_VERSION}.7z"
+PIKAFISH_CUSTOM_URL="$(grep -E '^PIKAFISH_DOWNLOAD_URL=' .env | tail -n 1 | cut -d= -f2- || true)"
+mkdir -p "$PIKAFISH_DIR"
+
+archive_is_valid() {
+  [[ -f "$PIKAFISH_ARCHIVE" ]] && echo "$PIKAFISH_SHA256  $PIKAFISH_ARCHIVE" | sha256sum -c - >/dev/null 2>&1
+}
+
+if ! archive_is_valid; then
+  rm -f "$PIKAFISH_ARCHIVE" "$PIKAFISH_ARCHIVE.part"
+  DOWNLOAD_URLS=()
+  [[ -n "$PIKAFISH_CUSTOM_URL" ]] && DOWNLOAD_URLS+=("$PIKAFISH_CUSTOM_URL")
+  DOWNLOAD_URLS+=("https://gh-proxy.com/$PIKAFISH_OFFICIAL_URL" "$PIKAFISH_OFFICIAL_URL")
+  for url in "${DOWNLOAD_URLS[@]}"; do
+    echo "正在下载 Pikafish：$url"
+    rm -f "$PIKAFISH_ARCHIVE.part"
+    if curl --fail --location --retry 5 --retry-delay 3 --retry-all-errors --connect-timeout 20 \
+      --output "$PIKAFISH_ARCHIVE.part" "$url"; then
+      if echo "$PIKAFISH_SHA256  $PIKAFISH_ARCHIVE.part" | sha256sum -c - >/dev/null 2>&1; then
+        mv "$PIKAFISH_ARCHIVE.part" "$PIKAFISH_ARCHIVE"
+        break
+      fi
+      echo "下载文件校验失败，正在尝试下一个地址。"
+    fi
+  done
+fi
+
+if ! archive_is_valid; then
+  echo "Pikafish 下载失败。可在 .env 设置 PIKAFISH_DOWNLOAD_URL，或手动放置：$PIKAFISH_ARCHIVE"
+  exit 1
+fi
+
 mkdir -p backups
 if "${COMPOSE[@]}" ps --status running postgres 2>/dev/null | grep -q postgres; then
   BACKUP_FILE="backups/koko-$(date +%Y%m%d-%H%M%S).sql.gz"

@@ -11,5 +11,6 @@ dist-desktop/
 *.tsbuildinfo
 backups/
 scratch/
+vendor/pikafish/*.7z
 *.kra~
 *.png-autosave.kra

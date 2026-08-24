@@ -52,7 +52,7 @@ git pull --ff-only
 ./scripts/deploy.sh
 ```
 
-部署脚本会先备份 PostgreSQL，再重新构建容器并等待健康检查。镜像构建时会从官方发布页下载固定版本的 Pikafish 与 NNUE；首次构建会比普通更新多下载约 55 MB。部署完成信息中出现“Pikafish 已启用”才表示专业象棋引擎运行正常。不要执行 `docker compose down -v`，否则会删除数据库卷。完整说明参见 [DEPLOY.md](DEPLOY.md)。
+部署脚本会先下载并校验固定版本的 Pikafish、备份 PostgreSQL，再重新构建容器并等待健康检查。引擎文件会缓存在 `vendor/pikafish/`，不会提交到 Git；首次部署会多下载约 55 MB。脚本会优先尝试下载代理，再尝试 GitHub 官方地址，也可在 `.env` 通过 `PIKAFISH_DOWNLOAD_URL` 指定自己的镜像。部署完成信息中出现“Pikafish 已启用”才表示专业象棋引擎运行正常。不要执行 `docker compose down -v`，否则会删除数据库卷。完整说明参见 [DEPLOY.md](DEPLOY.md)。
 
 ## 目录结构
 
