@@ -3805,8 +3805,8 @@ body.transparent-mode,
 
 .game-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
   margin-top: 4px;
 }
 
@@ -4110,7 +4110,7 @@ body.transparent-mode,
   flex-direction: column;
   gap: 14px;
   width: 100%;
-  max-width: 440px;
+  max-width: 760px;
   margin: 0 auto;
 }
 
@@ -4132,7 +4132,7 @@ body.transparent-mode,
   background: #ffffff;
   border: 1.5px solid var(--pink-soft);
   border-radius: 20px;
-  padding: 20px;
+  padding: 26px;
   box-shadow: 0 4px 16px rgba(224, 114, 137, 0.1);
   display: flex;
   flex-direction: column;
@@ -4159,9 +4159,9 @@ body.transparent-mode,
 }
 
 .quiz-options-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin-top: 6px;
 }
 
@@ -4177,6 +4177,9 @@ body.transparent-mode,
   text-align: left;
   transition: all 0.2s ease;
   position: relative;
+  min-height: 112px;
+  align-content: center;
+  padding-top: 34px;
 }
 
 .quiz-option-btn:hover:not(:disabled) {
@@ -4185,15 +4188,22 @@ body.transparent-mode,
   transform: translateY(-1px);
 }
 
-.quiz-option-btn.selected {
-  border-color: var(--pink);
-  background: #fff0f3;
-}
-
-.quiz-option-btn.matched {
+.quiz-option-btn.reveal-shared {
   border-color: #e0245e;
   background: #fff0f3;
   box-shadow: 0 0 0 2px rgba(224, 36, 94, 0.2);
+}
+
+.quiz-option-btn.reveal-player {
+  border-color: #4f86c6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(79, 134, 198, 0.14);
+}
+
+.quiz-option-btn.reveal-companion {
+  border-color: #e58497;
+  background: #fff7f8;
+  box-shadow: 0 0 0 2px rgba(229, 132, 151, 0.14);
 }
 
 .opt-letter {
@@ -4229,6 +4239,9 @@ body.transparent-mode,
   padding: 2px 7px;
   border-radius: 999px;
 }
+
+.match-tag.player { color: #315f96; background: #dbeafe; }
+.match-tag.companion { color: #a84f65; background: #ffe4e8; }
 
 /* ================= Settlement Result Modal ================= */
 .game-result-mask {
@@ -4550,12 +4563,13 @@ body.transparent-mode,
 
 /* ================= Memory Match Styles ================= */
 .memory-arena {
-  max-width: 440px;
+  max-width: 720px;
 }
 
 .memory-score-bar {
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  gap: 16px;
   width: 100%;
   background: #ffffff;
   border: 1px solid var(--line);
@@ -4577,13 +4591,19 @@ body.transparent-mode,
   color: #059669;
 }
 
+.score-pill.remaining {
+  color: #8b6b55;
+  padding: 0 16px;
+  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
 .memory-cards-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   width: 100%;
-  max-width: 400px;
-  aspect-ratio: 1;
+  max-width: 620px;
 }
 
 .memory-card-item {
@@ -4591,6 +4611,8 @@ body.transparent-mode,
   cursor: pointer;
   border-radius: 14px;
   user-select: none;
+  aspect-ratio: 1;
+  min-width: 0;
 }
 
 .card-inner {
@@ -4654,8 +4676,29 @@ body.transparent-mode,
 }
 
 .memory-card-item.matched {
-  opacity: 0.85;
+  opacity: 0.72;
   pointer-events: none;
+}
+
+.memory-card-item.matched .card-front {
+  border-color: #58b892;
+  background: #ecfdf5;
+  box-shadow: 0 0 0 3px rgba(88, 184, 146, 0.14);
+}
+
+@media (max-width: 760px) {
+  .game-zone-screen { padding: 10px 9px 22px; }
+  .game-cards-grid { grid-template-columns: 1fr; }
+  .game-zone-subtitle { display: none; }
+  .game-companion-bar { padding: 8px 10px; }
+  .quiz-card-box { padding: 16px; }
+  .quiz-options-list { grid-template-columns: 1fr; }
+  .quiz-option-btn { min-height: 82px; }
+  .memory-score-bar { gap: 8px; padding: 8px; }
+  .score-pill { font-size: 11px; }
+  .score-pill.remaining { padding: 0 8px; }
+  .memory-cards-grid { gap: 7px; }
+  .card-name { display: none; }
 }
 
 /* ==========================================================================

@@ -61,3 +61,18 @@ export function getCompanionMemoryMove(
   const pool = unknown.length > 0 ? unknown : unmatchedIndices;
   return pool[Math.floor(Math.random() * pool.length)];
 }
+
+export function canFlipMemoryCard(
+  cards: MemoryCard[],
+  flippedIndices: number[],
+  index: number,
+  turn: "player" | "companion",
+  isResolving: boolean,
+): boolean {
+  return turn === "player"
+    && !isResolving
+    && flippedIndices.length < 2
+    && Boolean(cards[index])
+    && !flippedIndices.includes(index)
+    && !cards[index].matched;
+}

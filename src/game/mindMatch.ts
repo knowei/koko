@@ -78,3 +78,19 @@ export function getRandomQuiz(count = 5): QuizQuestion[] {
   const shuffled = [...QUIZ_POOL].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }
+
+export type QuizRevealState = "hidden" | "shared" | "player" | "companion" | "neutral";
+
+export function getQuizOptionReveal(
+  question: QuizQuestion,
+  selected: "A" | "B" | null,
+  option: "A" | "B",
+): { state: QuizRevealState; label: string | null } {
+  if (!selected) return { state: "hidden", label: null };
+  const isPlayerChoice = selected === option;
+  const isCompanionChoice = question.companionChoice === option;
+  if (isPlayerChoice && isCompanionChoice) return { state: "shared", label: "💖 你们都选了这个" };
+  if (isPlayerChoice) return { state: "player", label: "👤 你选了这个" };
+  if (isCompanionChoice) return { state: "companion", label: "🌸 妹妹选了这个" };
+  return { state: "neutral", label: null };
+}

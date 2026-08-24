@@ -14,7 +14,7 @@ import {
   getBestGomokuMove,
   getCompanionCommentary,
 } from "@/game/gomoku";
-import { getRandomQuiz, type QuizQuestion } from "@/game/mindMatch";
+import { getQuizOptionReveal, getRandomQuiz, type QuizQuestion } from "@/game/mindMatch";
 import {
   type XiangqiBoard,
   type XiangqiMove,
@@ -37,6 +37,7 @@ import {
   type MemoryCard,
   createMemoryCards,
   getCompanionMemoryMove,
+  canFlipMemoryCard,
 } from "@/game/memoryMatch";
 
 interface GameZoneScreenProps {
@@ -480,7 +481,7 @@ export function GameZoneScreen({ onBack }: GameZoneScreenProps) {
 
   // =================== MEMORY MATCH MOVE ===================
   const handleMemoryCardClick = (idx: number) => {
-    if (memoryTurn !== "player" || isAiThinking || flippedIndices.includes(idx) || memoryCards[idx].matched) return;
+    if (!canFlipMemoryCard(memoryCards, flippedIndices, idx, memoryTurn, isAiThinking)) return;
 
     const card = memoryCards[idx];
     const newKnown = new Map(knownMemory);
@@ -491,6 +492,7 @@ export function GameZoneScreen({ onBack }: GameZoneScreenProps) {
     setFlippedIndices(nextFlipped);
 
     if (nextFlipped.length === 2) {
+      setIsAiThinking(true);
       const [idx1, idx2] = nextFlipped;
       const card1 = memoryCards[idx1];
       const card2 = memoryCards[idx2];
@@ -503,6 +505,7 @@ export function GameZoneScreen({ onBack }: GameZoneScreenProps) {
           );
           setMemoryCards(updatedCards);
           setFlippedIndices([]);
+          setIsAiThinking(false);
           const nextScore = playerScore + 1;
           setPlayerScore(nextScore);
           setCompanionSpeech(`（赞叹地鼓掌）哇！找到了「${card1.label}」！${userNickname}好眼力，再翻一次吧~`, "blush");
@@ -517,7 +520,6 @@ export function GameZoneScreen({ onBack }: GameZoneScreenProps) {
         setTimeout(() => {
           setFlippedIndices([]);
           setMemoryTurn("companion");
-          setIsAiThinking(true);
           runAiMemoryTurn(memoryCards, newKnown, playerScore, companionScore);
         }, 1100);
       }
@@ -1096,6 +1098,7 @@ export function GameZoneScreen({ onBack }: GameZoneScreenProps) {
 
           <div className="memory-score-bar">
             <div className="score-pill player">你的得分: <strong>{playerScore}</strong> 对</div>
+            <div className="score-pill remaining">剩余 <strong>{Math.max(0, 8 - playerScore - companionScore)}</strong> 对</div>
             <div className="score-pill companion">{companionName}得分: <strong>{companionScore}</strong> 对</div>
           </div>
 
@@ -1104,7 +1107,7 @@ export function GameZoneScreen({ onBack }: GameZoneScreenProps) {
               const isFlipped = flippedIndices.includes(idx) || card.matched;
               return (
                 <div
-                  key={idx}
+                  key={card.id}
                   className={`memory-card-item ${isFlipped ? "flipped" : ""} ${card.matched ? "matched" : ""}`}
                   onClick={() => handleMemoryCardClick(idx)}
                 >
@@ -1136,33 +1139,21 @@ export function GameZoneScreen({ onBack }: GameZoneScreenProps) {
             <h3 className="quiz-question-title">{quizList[quizIdx].question}</h3>
 
             <div className="quiz-options-list">
-              <button
-                className={`quiz-option-btn ${selectedOpt === "A" ? "selected" : ""} ${
-                  selectedOpt && quizList[quizIdx].companionChoice === "A" ? "matched" : ""
-                }`}
-                onClick={() => handleQuizSelect("A")}
-                disabled={selectedOpt !== null}
-              >
-                <span className="opt-letter">A</span>
-                <span className="opt-text">{quizList[quizIdx].optionA}</span>
-                {selectedOpt && quizList[quizIdx].companionChoice === "A" && (
-                  <span className="match-tag">💖 {companionName}也选这个！</span>
-                )}
-              </button>
-
-              <button
-                className={`quiz-option-btn ${selectedOpt === "B" ? "selected" : ""} ${
-                  selectedOpt && quizList[quizIdx].companionChoice === "B" ? "matched" : ""
-                }`}
-                onClick={() => handleQuizSelect("B")}
-                disabled={selectedOpt !== null}
-              >
-                <span className="opt-letter">B</span>
-                <span className="opt-text">{quizList[quizIdx].optionB}</span>
-                {selectedOpt && quizList[quizIdx].companionChoice === "B" && (
-                  <span className="match-tag">💖 {companionName}也选这个！</span>
-                )}
-              </button>
+              {(["A", "B"] as const).map((option) => {
+                const reveal = getQuizOptionReveal(quizList[quizIdx], selectedOpt, option);
+                return (
+                  <button
+                    key={option}
+                    className={`quiz-option-btn reveal-${reveal.state}`}
+                    onClick={() => handleQuizSelect(option)}
+                    disabled={selectedOpt !== null}
+                  >
+                    <span className="opt-letter">{option}</span>
+                    <span className="opt-text">{option === "A" ? quizList[quizIdx].optionA : quizList[quizIdx].optionB}</span>
+                    {reveal.label && <span className={`match-tag ${reveal.state}`}>{reveal.label.replace("妹妹", companionName)}</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
