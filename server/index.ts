@@ -418,6 +418,8 @@ app.post("/api/rewards/check-in", requireAuth, async (req: AuthRequest, res) => 
   try {
     const result = await transaction(async (client) => {
       const today = String((await client.query("SELECT TO_CHAR(NOW() AT TIME ZONE 'Asia/Shanghai','YYYY-MM-DD') AS today")).rows[0].today);
+      const wallet = await client.query("SELECT points FROM wallets WHERE user_id=$1 FOR UPDATE", [req.userId]);
+      if (!wallet.rows[0]) throw new Error("账号钱包不存在，请重新登录后再试。");
       const activity = await client.query("SELECT last_checkin,checkin_streak FROM user_activity WHERE user_id=$1 FOR UPDATE", [req.userId]);
       const last = activity.rows[0]?.last_checkin ? new Date(activity.rows[0].last_checkin).toISOString().slice(0, 10) : null;
       if (last === today) throw new Error("今天已经签到过了。");
@@ -425,16 +427,21 @@ app.post("/api/rewards/check-in", requireAuth, async (req: AuthRequest, res) => 
       const streak = last === yesterday.toISOString().slice(0, 10) ? Number(activity.rows[0]?.checkin_streak || 0) + 1 : 1;
       const bonus = streak % 7 === 0 ? 30 : streak % 3 === 0 ? 10 : 0;
       const amount = 10 + bonus;
+      const claim = await client.query(`INSERT INTO reward_claims(user_id,claim_key,amount) VALUES($1,$2,$3)
+        ON CONFLICT(user_id,claim_key) DO NOTHING RETURNING amount`, [req.userId, `checkin:${today}`, amount]);
+      if (!claim.rowCount) throw new Error("今天已经签到过了。");
       await client.query(`INSERT INTO user_activity(user_id,last_checkin,checkin_streak) VALUES($1,$2,$3)
         ON CONFLICT(user_id) DO UPDATE SET last_checkin=EXCLUDED.last_checkin,checkin_streak=EXCLUDED.checkin_streak`, [req.userId, today, streak]);
-      await client.query("INSERT INTO reward_claims(user_id,claim_key,amount) VALUES($1,$2,$3)", [req.userId, `checkin:${today}`, amount]);
       await client.query("UPDATE wallets SET points=points+$1 WHERE user_id=$2", [amount, req.userId]);
       await client.query("INSERT INTO asset_ledger(id,user_id,amount,reason,ref_id) VALUES($1,$2,$3,$4,$5)", [crypto.randomUUID(), req.userId, amount, "每日签到", `checkin:${today}`]);
       const points = Number((await client.query("SELECT points FROM wallets WHERE user_id=$1", [req.userId])).rows[0].points);
       return { points, amount, streak, lastCheckIn: today };
     });
     res.json(result);
-  } catch (error) { res.status(409).json({ error: error instanceof Error ? error.message : "签到失败。" }); }
+  } catch (error) {
+    const message = error instanceof Error && !error.message.includes("duplicate key") ? error.message : "今天已经签到过了。";
+    res.status(409).json({ error: message });
+  }
 });
 
 app.post("/api/events/trigger", requireAuth, async (req: AuthRequest, res) => {
