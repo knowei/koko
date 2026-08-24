@@ -60,6 +60,7 @@
     ],
     "npmRebuild": false,
     "win": {
+      "icon": "build/koko-app-icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -68,6 +69,8 @@
       ]
     },
     "nsis": {
+      "installerIcon": "build/koko-app-icon.ico",
+      "uninstallerIcon": "build/koko-app-icon.ico",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,

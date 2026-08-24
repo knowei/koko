@@ -19,6 +19,12 @@ function getFullWindowSize(display = screen.getPrimaryDisplay()) {
   };
 }
 
+function getAppIconPath(size = 'app') {
+  const filename = size === 'tray' ? 'koko-tray.png' : 'koko-app-icon.png';
+  const assetRoot = app.isPackaged ? '../dist/assets/icons' : '../public/assets/icons';
+  return path.join(__dirname, assetRoot, filename);
+}
+
 function waitForServer(url, timeoutMs = 15000) {
   const startTime = Date.now();
   return new Promise((resolve) => {
@@ -56,6 +62,7 @@ async function createWindow() {
     minWidth: 900,
     minHeight: 680,
     center: true,
+    icon: getAppIconPath(),
     transparent: true,
     backgroundColor: '#00000000',
     frame: false,
@@ -131,8 +138,7 @@ function setWindowMode(mode) {
 function createTray() {
   if (tray) return;
   try {
-    const traySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#f472b6"/><path d="M16 25S6 19.2 6 12.5C6 8.1 11.4 6 16 10.5 20.6 6 26 8.1 26 12.5 26 19.2 16 25 16 25Z" fill="white"/></svg>`;
-    const trayIcon = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(traySvg).toString('base64')}`).resize({ width: 32, height: 32 });
+    const trayIcon = nativeImage.createFromPath(getAppIconPath('tray')).resize({ width: 32, height: 32 });
     tray = new Tray(trayIcon);
   } catch {}
 
