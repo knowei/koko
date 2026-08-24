@@ -38,7 +38,7 @@ export function extractTagsAndClean(rawText: string): {
   affinityDelta?: number;
 } {
   if (!rawText) return { cleanedText: "" };
-  let text = rawText;
+  let text = stripReasoningContent(rawText);
   let expression: ExpressionType | undefined;
   let moodDelta: number | undefined;
   let affinityDelta: number | undefined;
@@ -118,6 +118,8 @@ export function detectExpression(
  */
 export function parseMessageSegments(rawText: string): MessageSegment[] {
   if (!rawText) return [];
+  const safeText = stripReasoningContent(rawText);
+  if (!safeText) return [];
   const segments: MessageSegment[] = [];
 
   // 1. Separate <think> tags if present
@@ -125,8 +127,8 @@ export function parseMessageSegments(rawText: string): MessageSegment[] {
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
-  while ((match = thinkRegex.exec(rawText)) !== null) {
-    const preText = rawText.slice(lastIndex, match.index);
+  while ((match = thinkRegex.exec(safeText)) !== null) {
+    const preText = safeText.slice(lastIndex, match.index);
     if (preText.trim()) {
       parseActionsAndDialogue(preText, segments);
     }
@@ -137,12 +139,12 @@ export function parseMessageSegments(rawText: string): MessageSegment[] {
     lastIndex = match.index + match[0].length;
   }
 
-  const postText = rawText.slice(lastIndex);
+  const postText = safeText.slice(lastIndex);
   if (postText.trim()) {
     parseActionsAndDialogue(postText, segments);
   }
 
-  return segments.length > 0 ? segments : [{ type: "dialogue", content: rawText }];
+  return segments.length > 0 ? segments : [{ type: "dialogue", content: safeText }];
 }
 
 function parseActionsAndDialogue(text: string, output: MessageSegment[]) {
@@ -180,3 +182,4 @@ function parseActionsAndDialogue(text: string, output: MessageSegment[]) {
     output.push({ type: "dialogue", content: afterDialogue });
   }
 }
+import { stripReasoningContent } from "@/lib/reasoningFilter";

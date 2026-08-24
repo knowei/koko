@@ -1,4 +1,5 @@
 import { apiUrl } from "./api";
+import { stripReasoningContent } from "./reasoningFilter";
 
 export interface TTSSettings {
   enabled: boolean;
@@ -75,7 +76,7 @@ export const PRESET_EDGE_VOICES: PresetVoice[] = [
  */
 export function cleanTextForSpeech(raw: string): string {
   if (!raw) return "";
-  let text = raw;
+  let text = stripReasoningContent(raw);
 
   // 1. Remove bracketed actions: （...）, (...), 【...】, [...], *...*, 「...」
   text = text.replace(/（[^）]*）/g, " ");

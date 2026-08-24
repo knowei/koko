@@ -9,6 +9,7 @@ import { buildSystemPrompt, DEFAULT_PERSONALITY, DEFAULT_PROFILE, RANDOM_EVENTS,
 import { createToken, db, hashPassword, initPlatform, requireAuth, SERVER_PRODUCTS, transaction, type AuthRequest, verifyPassword } from "./platform.js";
 import { synthesizeCustomTTS, synthesizeEdgeTTS } from "./tts.js";
 import { runVisionComment, type VisionCommentBody } from "./vision.js";
+import { StreamingReasoningFilter } from "../src/lib/reasoningFilter.js";
 
 dotenv.config();
 
@@ -694,6 +695,7 @@ async function streamAnthropic(
   messages: ChatMsg[],
   isClosed: () => boolean,
 ) {
+  const reasoningFilter = new StreamingReasoningFilter();
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const stream = client.messages.stream({
     model: DEFAULT_MODEL,
@@ -712,9 +714,12 @@ async function streamAnthropic(
   });
 
   stream.on("text", (delta: string) => {
-    if (!isClosed() && delta) sseSend(res, { type: "delta", text: delta });
+    const visible = reasoningFilter.push(delta);
+    if (!isClosed() && visible) sseSend(res, { type: "delta", text: visible });
   });
   await stream.finalMessage();
+  const tail = reasoningFilter.flush();
+  if (!isClosed() && tail) sseSend(res, { type: "delta", text: tail });
 }
 
 async function streamOpenAICompatible(
@@ -759,6 +764,7 @@ async function streamOpenAICompatible(
   const reader = upstream.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  const reasoningFilter = new StreamingReasoningFilter();
 
   while (true) {
     if (isClosed()) break;
@@ -771,16 +777,23 @@ async function streamOpenAICompatible(
       const line = raw.trim();
       if (!line.startsWith("data:")) continue;
       const payload = line.slice(5).trim();
-      if (payload === "[DONE]") return;
+      if (payload === "[DONE]") {
+        const tail = reasoningFilter.flush();
+        if (tail) sseSend(res, { type: "delta", text: tail });
+        return;
+      }
       try {
         const json = JSON.parse(payload);
         const delta: string | undefined = json?.choices?.[0]?.delta?.content;
-        if (delta) sseSend(res, { type: "delta", text: delta });
+        const visible = delta ? reasoningFilter.push(delta) : "";
+        if (visible) sseSend(res, { type: "delta", text: visible });
       } catch {
         // ignore keep-alive / partial lines
       }
     }
   }
+  const tail = reasoningFilter.flush();
+  if (!isClosed() && tail) sseSend(res, { type: "delta", text: tail });
 }
 
 async function streamEcho(
