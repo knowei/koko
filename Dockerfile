@@ -14,6 +14,10 @@ FROM node:22-bookworm-slim
 
 WORKDIR /app
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends libatomic1 \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -21,6 +25,9 @@ COPY . .
 RUN npm run build
 
 COPY --from=pikafish /opt/pikafish /opt/pikafish
+
+RUN cd /opt/pikafish \
+  && printf 'uci\nisready\nquit\n' | ./pikafish-sse41-popcnt | grep -q readyok
 
 ENV NODE_ENV=production
 ENV PORT=8787

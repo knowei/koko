@@ -62,6 +62,12 @@ class PikafishEngine {
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", (chunk: string) => { this.output += chunk; });
     child.stderr.on("data", (chunk: Buffer) => { console.warn(`[pikafish] ${chunk.toString().trim()}`); });
+    child.stdin.on("error", (error: NodeJS.ErrnoException) => {
+      // A missing runtime dependency or incompatible binary may make the engine
+      // exit before a command is written. Keep that failure inside the request
+      // instead of letting an unhandled EPIPE terminate the API process.
+      console.warn(`[pikafish] stdin error: ${error.code || error.message}`);
+    });
     child.once("exit", () => { if (this.process === child) this.process = null; });
     this.process = child;
     return child;
