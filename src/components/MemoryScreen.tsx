@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useStore } from "@/store/companionStore";
-import { POLAROIDS, type MemoryKind } from "@/data/persona";
+import { type MemoryKind } from "@/data/persona";
+import { GALLERY_ITEMS, type GalleryItem } from "@/data/gallery";
 
 const kindConfig: Record<MemoryKind, { label: string; icon: string; color: string }> = {
   name: { label: "称呼与名字", icon: "👤", color: "#3b82f6" },
@@ -17,7 +18,6 @@ export function MemoryScreen() {
   const messages = useStore((state) => state.messages);
   const diaries = useStore((state) => state.diaries);
   const affinity = useStore((state) => state.affinity);
-  const unlockedSkins = useStore((state) => state.unlockedSkins);
   const addMemory = useStore((state) => state.addMemory);
   const updateMemory = useStore((state) => state.updateMemory);
   const togglePinMemory = useStore((state) => state.togglePinMemory);
@@ -25,8 +25,6 @@ export function MemoryScreen() {
   const removeDiary = useStore((state) => state.removeDiary);
   const profile = useStore((state) => state.profile);
   const agreements = useStore((state) => state.agreements);
-  const experiences = useStore((state) => state.experiences);
-  const removeExperience = useStore((state) => state.removeExperience);
   const addAgreement = useStore((state) => state.addAgreement);
   const updateAgreementStatus = useStore((state) => state.updateAgreementStatus);
   const snoozeAgreement = useStore((state) => state.snoozeAgreement);
@@ -36,7 +34,12 @@ export function MemoryScreen() {
   const analyzingDiary = useStore((state) => state.analyzingDiary);
   const refreshDiaryAnalysis = useStore((state) => state.refreshDiaryAnalysis);
 
+  const unlockedGallery = useStore((state) => state.unlockedGallery) || [];
+  const customBgImage = useStore((state) => state.customBgImage);
+  const setCustomBgImage = useStore((state) => state.setCustomBgImage);
+
   const [tab, setTab] = useState<"scrapbook" | "profile" | "polaroids">("scrapbook");
+  const [galleryFilter, setGalleryFilter] = useState<"all" | "daily" | "story_cg" | "intimate">("all");
   const [draft, setDraft] = useState("");
   const [kind, setKind] = useState<MemoryKind>("preference");
   const [selectedKindFilter, setSelectedKindFilter] = useState<string>("all");
@@ -47,14 +50,16 @@ export function MemoryScreen() {
 
   const [agreementDraft, setAgreementDraft] = useState("");
   const [agreementDate, setAgreementDate] = useState("");
-  const [activePolaroid, setActivePolaroid] = useState<string | null>(null);
+  const [activeItem, setActiveItem] = useState<GalleryItem | null>(null);
+  const [bgNotice, setBgNotice] = useState<string | null>(null);
 
   const companionName = profile.name || "妹妹";
 
-  const isPolaroidUnlocked = (p: typeof POLAROIDS[number]) => {
-    if (p.id === "photo_mint") return unlockedSkins.includes("green") || affinity >= p.minAffinity;
-    return affinity >= p.minAffinity;
+  const isItemUnlocked = (item: GalleryItem) => {
+    return unlockedGallery.includes(item.id) || affinity >= item.minAffinity;
   };
+
+  const unlockedCount = GALLERY_ITEMS.filter(isItemUnlocked).length;
 
   const handleStartEdit = (m: typeof memories[number]) => {
     setEditingMemoryId(m.id);
@@ -68,10 +73,27 @@ export function MemoryScreen() {
     setEditingMemoryId(null);
   };
 
+  const handleSetBg = (src: string) => {
+    setCustomBgImage(src);
+    setBgNotice("已成功设为主界面舞台背景！✨");
+    setTimeout(() => setBgNotice(null), 3000);
+  };
+
+  const handleClearBg = () => {
+    setCustomBgImage(null);
+    setBgNotice("已恢复默认场景背景");
+    setTimeout(() => setBgNotice(null), 3000);
+  };
+
   const filteredMemories = memories.filter((m) => {
     if (selectedKindFilter !== "all" && m.kind !== selectedKindFilter) return false;
     if (searchQuery.trim() && !m.text.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
+  });
+
+  const filteredGallery = GALLERY_ITEMS.filter((item) => {
+    if (galleryFilter === "all") return true;
+    return item.category === galleryFilter;
   });
 
   return (
@@ -102,7 +124,7 @@ export function MemoryScreen() {
           className={`memory-tab-btn ${tab === "polaroids" ? "active" : ""}`}
           onClick={() => setTab("polaroids")}
         >
-          📷 拍立得相册 ({POLAROIDS.filter(isPolaroidUnlocked).length}/{POLAROIDS.length})
+          📸 珍藏相册与CG ({unlockedCount}/{GALLERY_ITEMS.length})
         </button>
       </div>
 
@@ -138,31 +160,25 @@ export function MemoryScreen() {
                 onChange={(e) => setDraft(e.target.value)}
                 className="memory-input"
                 maxLength={80}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && draft.trim()) {
-                    addMemory(draft.trim(), kind);
-                    setDraft("");
-                  }
-                }}
               />
               <button
-                className="memory-save-btn"
+                className="memory-submit-btn"
                 onClick={() => {
                   if (!draft.trim()) return;
                   addMemory(draft.trim(), kind);
                   setDraft("");
                 }}
               >
-                记在心里 📌
+                记在心底 💖
               </button>
             </div>
           </div>
 
-          {/* Filters and Search */}
-          <div className="memory-filters-row">
-            <div className="kind-filter-pills">
+          {/* Filter & Search Bar */}
+          <div className="memory-filter-bar">
+            <div className="kind-filter-tags">
               <button
-                className={`kind-pill ${selectedKindFilter === "all" ? "active" : ""}`}
+                className={`filter-tag-btn ${selectedKindFilter === "all" ? "active" : ""}`}
                 onClick={() => setSelectedKindFilter("all")}
               >
                 全部 ({memories.length})
@@ -172,7 +188,7 @@ export function MemoryScreen() {
                 return (
                   <button
                     key={k}
-                    className={`kind-pill ${selectedKindFilter === k ? "active" : ""}`}
+                    className={`filter-tag-btn ${selectedKindFilter === k ? "active" : ""}`}
                     onClick={() => setSelectedKindFilter(k)}
                   >
                     {cfg.icon} {cfg.label} ({count})
@@ -180,22 +196,31 @@ export function MemoryScreen() {
                 );
               })}
             </div>
-            <input
-              type="text"
-              placeholder="🔍 搜索记忆关键词..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="memory-search-input"
-            />
+            <div className="search-box">
+              <span>🔍</span>
+              <input
+                type="text"
+                placeholder="搜索记忆片段…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button className="clear-search" onClick={() => setSearchQuery("")}>
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Memory Tags / Cards Grid */}
-          <div className="memory-cards-grid">
+          {/* Memory List Cards */}
+          <div className="memory-grid">
             {filteredMemories.length === 0 ? (
               <div className="memory-empty-state">
-                <span className="empty-icon">💭</span>
+                <span className="empty-icon">📭</span>
                 <p>
-                  {searchQuery ? "没有找到匹配的记忆项" : `和${companionName}聊聊你的日常，她会自动记住关于你的一切哦~`}
+                  {searchQuery || selectedKindFilter !== "all"
+                    ? "没有找到符合条件的记忆片段"
+                    : "妹妹的笔记本还是崭新的~ 试着在聊天中多跟她说说你自己的事情吧！"}
                 </p>
               </div>
             ) : (
@@ -210,11 +235,11 @@ export function MemoryScreen() {
                     style={{ borderLeftColor: cfg.color }}
                   >
                     {isEditing ? (
-                      <div className="memory-edit-inline">
+                      <div className="memory-edit-mode">
                         <select
                           value={editingKind}
                           onChange={(e) => setEditingKind(e.target.value as MemoryKind)}
-                          className="memory-kind-select small"
+                          className="memory-kind-select"
                         >
                           {Object.entries(kindConfig).map(([k, c]) => (
                             <option key={k} value={k}>
@@ -226,12 +251,12 @@ export function MemoryScreen() {
                           type="text"
                           value={editingText}
                           onChange={(e) => setEditingText(e.target.value)}
-                          className="memory-input small"
+                          className="memory-input"
+                          maxLength={80}
                           autoFocus
-                          onKeyDown={(e) => e.key === "Enter" && handleSaveEdit(m.id)}
                         />
-                        <div className="edit-btn-row">
-                          <button className="confirm-btn" onClick={() => handleSaveEdit(m.id)}>
+                        <div className="edit-actions">
+                          <button className="save-btn" onClick={() => handleSaveEdit(m.id)}>
                             保存
                           </button>
                           <button className="cancel-btn" onClick={() => setEditingMemoryId(null)}>
@@ -242,10 +267,10 @@ export function MemoryScreen() {
                     ) : (
                       <>
                         <div className="memory-card-top">
-                          <span className="kind-badge" style={{ backgroundColor: `${cfg.color}18`, color: cfg.color }}>
+                          <span className="memory-kind-badge" style={{ backgroundColor: `${cfg.color}18`, color: cfg.color }}>
                             {cfg.icon} {cfg.label}
                           </span>
-                          <div className="card-actions">
+                          <div className="memory-card-actions">
                             <button
                               className={`pin-btn ${m.pinned ? "active" : ""}`}
                               onClick={() => togglePinMemory(m.id)}
@@ -282,30 +307,67 @@ export function MemoryScreen() {
           </div>
         </section>
       ) : tab === "polaroids" ? (
+        /* Enhanced Photo & Story CG Gallery */
         <section className="polaroid-gallery">
           <div className="polaroid-header">
-            <h3>珍贵瞬间 · 拍立得相册</h3>
-            <span>随着亲密度提升、外出经历和换装，将逐步解锁专属珍贵照片</span>
+            <div>
+              <h3>📸 珍藏相册与剧情 CG 画廊</h3>
+              <p>随着亲密度提升、外出约会与日常陪伴，将逐步解锁可可的专属珍贵照片与剧情插画~</p>
+            </div>
+            {customBgImage && (
+              <button className="gallery-reset-bg-btn" onClick={handleClearBg} title="恢复默认场景">
+                🔄 恢复默认主舞台背景
+              </button>
+            )}
           </div>
+
+          {bgNotice && <div className="gallery-toast-notice">{bgNotice}</div>}
+
+          {/* Filter Categories */}
+          <div className="gallery-filter-tabs">
+            <button
+              className={`gallery-filter-btn ${galleryFilter === "all" ? "active" : ""}`}
+              onClick={() => setGalleryFilter("all")}
+            >
+              全部珍藏 ({GALLERY_ITEMS.length})
+            </button>
+            <button
+              className={`gallery-filter-btn ${galleryFilter === "daily" ? "active" : ""}`}
+              onClick={() => setGalleryFilter("daily")}
+            >
+              📷 日常拍立得 (9:16)
+            </button>
+            <button
+              className={`gallery-filter-btn ${galleryFilter === "story_cg" ? "active" : ""}`}
+              onClick={() => setGalleryFilter("story_cg")}
+            >
+              🎬 剧情大CG (16:9)
+            </button>
+            <button
+              className={`gallery-filter-btn ${galleryFilter === "intimate" ? "active" : ""}`}
+              onClick={() => setGalleryFilter("intimate")}
+            >
+              💖 卧室与私密珍藏
+            </button>
+          </div>
+
           <div className="polaroid-grid">
-            {POLAROIDS.map((p) => {
-              const unlocked = isPolaroidUnlocked(p);
-              const isSelected = activePolaroid === p.id;
+            {filteredGallery.map((p) => {
+              const unlocked = isItemUnlocked(p);
+              const isSelected = activeItem?.id === p.id;
+              const isCurrentBg = customBgImage === p.imageSrc;
 
               return (
                 <div
                   key={p.id}
-                  className={`polaroid-card ${unlocked ? "unlocked" : "locked"} ${isSelected ? "selected" : ""}`}
-                  onClick={() => unlocked && setActivePolaroid(isSelected ? null : p.id)}
+                  className={`polaroid-card ${p.aspectRatio === "16:9" ? "wide-cg-card" : "portrait-card"} ${unlocked ? "unlocked" : "locked"} ${isSelected ? "selected" : ""}`}
+                  onClick={() => unlocked && setActiveItem(p)}
                 >
                   <div className="polaroid-tape" />
-                  <div className="polaroid-photo">
+                  {isCurrentBg && <div className="current-bg-badge">当前舞台背景 🖼️</div>}
+                  <div className={`polaroid-photo ${p.aspectRatio === "16:9" ? "aspect-16-9" : "aspect-9-16"}`}>
                     {unlocked ? (
-                      <div className="polaroid-photo-placeholder" aria-label={`${p.title}照片待生成`}>
-                        <span aria-hidden="true">📷</span>
-                        <strong>照片待生成</strong>
-                        <small>后续将根据共同经历生成</small>
-                      </div>
+                      <img src={p.imageSrc} alt={p.title} className="gallery-img-thumb" loading="lazy" />
                     ) : (
                       <div className="polaroid-lock-placeholder">
                         <span className="lock-icon">🔒</span>
@@ -315,15 +377,54 @@ export function MemoryScreen() {
                   </div>
                   <div className="polaroid-caption">
                     <div className="polaroid-title">{unlocked ? p.title : "未解锁的记忆"}</div>
-                    <div className="polaroid-meta">{unlocked ? p.dateTag : `需亲密度 ${p.minAffinity}`}</div>
+                    <div className="polaroid-meta">{unlocked ? p.dateTag : `需亲密度 Lv.${p.minAffinity}`}</div>
                     {unlocked && <p className="polaroid-quote">{p.caption}</p>}
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* Lightbox Fullscreen Modal */}
+          {activeItem && (
+            <div className="gallery-lightbox-overlay" onClick={() => setActiveItem(null)}>
+              <div className="gallery-lightbox-modal" onClick={(e) => e.stopPropagation()}>
+                <button className="lightbox-close-btn" onClick={() => setActiveItem(null)}>
+                  ✕
+                </button>
+                <div className="lightbox-image-wrapper">
+                  <img src={activeItem.imageSrc} alt={activeItem.title} className="lightbox-image" />
+                </div>
+                <div className="lightbox-info-panel">
+                  <div className="lightbox-header">
+                    <h4>{activeItem.title}</h4>
+                    <span className="lightbox-date-badge">{activeItem.dateTag}</span>
+                  </div>
+                  <p className="lightbox-quote">{activeItem.caption}</p>
+                  <div className="lightbox-actions">
+                    <button
+                      className="lightbox-action-btn set-bg"
+                      onClick={() => handleSetBg(activeItem.imageSrc)}
+                    >
+                      🖼️ 设为应用背景
+                    </button>
+                    <a
+                      href={activeItem.imageSrc}
+                      download={`${activeItem.title}.jpg`}
+                      className="lightbox-action-btn download"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      📥 导出原图壁纸
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       ) : (
+        /* Scrapbook Tab */
         <>
           <section className="memory-page-card memory-analysis-card">
             <div className="tape-strip" />
@@ -350,92 +451,62 @@ export function MemoryScreen() {
                 value={agreementDraft}
                 maxLength={80}
                 onChange={(event) => setAgreementDraft(event.target.value)}
-                placeholder="例如：周末一起去看电影、明天提醒我早起"
+                placeholder="记录新的约定（例：周末一起看电影）"
               />
               <input
                 type="date"
                 value={agreementDate}
                 onChange={(event) => setAgreementDate(event.target.value)}
+                aria-label="约定到期日期"
               />
               <button
                 onClick={() => {
                   if (!agreementDraft.trim()) return;
-                  addAgreement(agreementDraft, agreementDate || null);
+                  addAgreement(agreementDraft.trim(), agreementDate || null);
                   setAgreementDraft("");
                   setAgreementDate("");
                 }}
               >
-                约好啦 ✍️
+                添加约定 🤝
               </button>
             </div>
             <div className="agreement-list">
               {agreements.length === 0 && (
-                <div className="empty-memory">聊天里说“明天提醒我”“下次一起去……”时，{companionName}也会自动记在这里。</div>
+                <div className="empty-memory">还没有约定。聊天中提到“下次一起去…”或在此手动添加，便会出现在这里。</div>
               )}
-              {[...agreements].reverse().map((agreement) => (
-                <article key={agreement.id} className={`agreement-item ${agreement.status}`}>
-                  <div>
-                    <strong>{agreement.text}</strong>
-                    <span>{agreement.dueDate ? `📅 预计 ${agreement.dueDate}` : "还没定时间"}</span>
+              {agreements.map((item) => (
+                <article key={item.id} className={`agreement-item ${item.status}`}>
+                  <div className="agreement-main">
+                    <span className="stamp-badge">
+                      {item.status === "completed" ? "已履约" : item.status === "cancelled" ? "已取消" : "等待中"}
+                    </span>
+                    <p>{item.text}</p>
                   </div>
-                  {agreement.status === "pending" ? (
-                    <div className="agreement-actions">
-                      <button className="done-btn" onClick={() => updateAgreementStatus(agreement.id, "completed")}>
-                        完成了 ✓
-                      </button>
-                      <button className="snooze-btn" onClick={() => snoozeAgreement(agreement.id)}>
-                        改到明天
-                      </button>
-                      <button className="cancel-btn" onClick={() => updateAgreementStatus(agreement.id, "cancelled")}>
-                        取消
-                      </button>
-                    </div>
-                  ) : (
-                    <em className="agreement-status-tag">
-                      {agreement.status === "completed" ? "已完成 · 写入共同经历 ✨" : "已取消"}
-                    </em>
-                  )}
+                  <div className="agreement-actions">
+                    {item.dueDate && <small>约定：{item.dueDate}</small>}
+                    {item.status === "pending" && (
+                      <>
+                        <button onClick={() => updateAgreementStatus(item.id, "completed")}>完成 ✨</button>
+                        <button onClick={() => snoozeAgreement(item.id)}>推迟 ⏳</button>
+                      </>
+                    )}
+                    {item.status !== "pending" && (
+                      <button onClick={() => updateAgreementStatus(item.id, "pending")}>重开</button>
+                    )}
+                  </div>
                 </article>
               ))}
             </div>
           </section>
 
-          <section className="memory-page-card experience-page">
-            <div className="tape-strip pink-tape" />
-            <div className="memory-page-title">
-              <strong>共同经历纪事</strong>
-              <span>共 {experiences.length} 篇</span>
-            </div>
-            <div className="experience-grid">
-              {experiences.length === 0 && (
-                <div className="empty-memory">完成约定、专注伴读、一起外出、送礼物或下棋后，会留下属于你们的共同回忆。</div>
-              )}
-              {[...experiences].reverse().slice(0, 12).map((experience) => (
-                <article key={experience.id} className={`experience-record ${experience.kind}`}>
-                  <div>
-                    <span className="experience-date">{new Date(experience.ts).toLocaleDateString("zh-CN")}</span>
-                    <button className="del-btn" onClick={() => removeExperience(experience.id)} title="删除记录">×</button>
-                  </div>
-                  <strong>{experience.title}</strong>
-                  <p>{experience.detail}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <div className="memory-columns">
+          <div className="memory-book">
             <section className="memory-page-card">
-              <div className="tape-strip yellow-tape" />
+              <div className="tape-strip pink-tape" />
               <div className="memory-page-title">
-                <strong>{companionName}记得你</strong>
-                <span>{memories.length}/50</span>
+                <strong>{companionName}的手账本</strong>
+                <span>{memories.length} 条</span>
               </div>
-              <div className="memory-editor">
-                <select value={kind} onChange={(event) => setKind(event.target.value as MemoryKind)}>
-                  {Object.entries(kindConfig).map(([value, cfg]) => (
-                    <option key={value} value={value}>{cfg.label}</option>
-                  ))}
-                </select>
+              <div className="memory-form">
                 <input
                   value={draft}
                   maxLength={80}

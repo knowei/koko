@@ -7,6 +7,7 @@ import {
   DEFAULT_PERSONALITY, DEFAULT_PROFILE, GIFTS, MILESTONES, OUTINGS, SHOP_PRODUCTS,
   type CompanionMemory, type CompanionProfile, type MemoryKind, type PersonalityTraits, type RandomEvent, type ReplyStyle, type WeatherInfo,
 } from "@/data/persona";
+import { GALLERY_ITEMS } from "@/data/gallery";
 
 import { apiUrl } from "@/lib/api";
 
@@ -245,6 +246,11 @@ interface State {
   focusStats: FocusStats;
   healthTracker: HealthTracker;
   alarms: CustomAlarm[];
+  unlockedGallery: string[];
+  customBgImage: string | null;
+  unlockGalleryItem: (id: string) => void;
+  setCustomBgImage: (url: string | null) => void;
+
 
   updateMemory: (id: string, text: string, kind: MemoryKind) => void;
   togglePinMemory: (id: string) => void;
@@ -342,6 +348,11 @@ export const useStore = create<State>()(
         lastSedentaryNotification: 0
       },
       alarms: [],
+      unlockedGallery: ["photo_cafe", "cg_0730_morning_kitchen"],
+      customBgImage: null,
+      unlockGalleryItem: (id: string) => set((s) => ({ unlockedGallery: (s.unlockedGallery || []).includes(id) ? s.unlockedGallery : [...(s.unlockedGallery || []), id] })),
+      setCustomBgImage: (customBgImage: string | null) => set({ customBgImage }),
+
       pendingEvent: null,
       pendingEventInstanceId: null,
       eventDate: null,
@@ -844,7 +855,7 @@ export const useStore = create<State>()(
           stickyNotes: save.stickyNotes,
           focusStats: save.focusStats,
           healthTracker: save.healthTracker,
-          alarms: save.alarms,
+          alarms: save.alarms, unlockedGallery: save.unlockedGallery, customBgImage: save.customBgImage,
           rollingSummary: save.rollingSummary,
           lastAnalyzedMessageCount: save.lastAnalyzedMessageCount,
           lastDiaryAnalyzedCount: save.lastDiaryAnalyzedCount,
@@ -884,7 +895,7 @@ export const useStore = create<State>()(
           stickyNotes: Array.isArray(incoming.stickyNotes) ? incoming.stickyNotes : current.stickyNotes,
           focusStats: incoming.focusStats ?? current.focusStats,
           healthTracker: incoming.healthTracker ?? current.healthTracker,
-          alarms: Array.isArray(incoming.alarms) ? incoming.alarms : current.alarms,
+          alarms: Array.isArray(incoming.alarms) ? incoming.alarms : current.alarms, unlockedGallery: Array.isArray(incoming.unlockedGallery) ? incoming.unlockedGallery : current.unlockedGallery, customBgImage: typeof incoming.customBgImage === "string" ? incoming.customBgImage : (incoming.customBgImage === null ? null : current.customBgImage),
           rollingSummary: typeof incoming.rollingSummary === "string" ? incoming.rollingSummary.slice(0, 900) : "",
           lastAnalyzedMessageCount: typeof incoming.lastAnalyzedMessageCount === "number" ? Math.max(0, incoming.lastAnalyzedMessageCount) : 0,
           analyzingMemory: false,
@@ -991,6 +1002,8 @@ export const useStore = create<State>()(
             hiddenPrompt: `今天和${userNickname}去了${outing.name}。${matchedWish ? "这正是你今天最想去的地方，表现出惊喜和心有灵犀的开心。" : ""}${outing.prompt}。直接以${companionName}的口吻回应，不要解释任务。`,
           }],
         });
+        const matchingGallery = GALLERY_ITEMS.find((item) => item.outingKey === id);
+        if (matchingGallery) get().unlockGalleryItem(matchingGallery.id);
         void get()._runTurn({ affinity: affinityReward, mood: outing.mood }).then(() => get().maybeTriggerEvent("outing"));
         return null;
       },

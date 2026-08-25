@@ -47,6 +47,7 @@ export default function App() {
   const currentExpression = useStore((s) => s.currentExpression);
   const setWeather = useStore((s) => s.setWeather);
   const syncWallet = useStore((s) => s.syncWallet);
+  const customBgImage = useStore((s) => s.customBgImage);
   const [showSettings, setShowSettings] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showPetWidget, setShowPetWidget] = useState(false);
@@ -171,7 +172,15 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="phone">
+      <div
+        className={`phone ${customBgImage ? "has-custom-bg" : ""}`}
+        style={customBgImage ? {
+          backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.88)), url(${customBgImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        } : undefined}
+      >
         {window.electronAPI?.isElectron && <div className="desktop-drag-strip" title="按住这里拖动窗口" />}
         <header className="topbar">
           <div className="who">
