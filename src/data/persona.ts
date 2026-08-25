@@ -203,7 +203,6 @@ export const RANDOM_EVENTS: RandomEvent[] = [
 export interface Polaroid {
   id: string;
   title: string;
-  image: string;
   dateTag: string;
   caption: string;
   minAffinity: number;
@@ -214,7 +213,6 @@ export const POLAROIDS: Polaroid[] = [
   {
     id: "photo_morning",
     title: "初醒与晨光",
-    image: "/assets/character/koko-sleepy.png",
     dateTag: "初识时分",
     caption: "“揉着眼睛从房间走出来，第一眼就看见了你。”",
     minAffinity: 0,
@@ -223,7 +221,6 @@ export const POLAROIDS: Polaroid[] = [
   {
     id: "photo_teatime",
     title: "午后奶茶时光",
-    image: "/assets/character/koko-base.png",
     dateTag: "便利店门前",
     caption: "“吸管插进杯子里，甜甜的味道就像今天的好心情。”",
     minAffinity: 15,
@@ -232,7 +229,6 @@ export const POLAROIDS: Polaroid[] = [
   {
     id: "photo_mint",
     title: "换上新裙子的午后",
-    image: "/assets/character/koko-relieved-green.png",
     dateTag: "试衣镜前",
     caption: "“转了个圈问你好看吗……你的眼神已经告诉我啦。”",
     minAffinity: 25,
@@ -241,7 +237,6 @@ export const POLAROIDS: Polaroid[] = [
   {
     id: "photo_cinema",
     title: "散场后的长椅",
-    image: "/assets/character/koko-relieved.png",
     dateTag: "影院回廊",
     caption: "“电影散场了，但不想那么快回家，想和你多坐一会儿。”",
     minAffinity: 40,
@@ -250,7 +245,6 @@ export const POLAROIDS: Polaroid[] = [
   {
     id: "photo_seaside",
     title: "海风与晚霞",
-    image: "/assets/character/koko-relieved.png",
     dateTag: "黄昏海岸",
     caption: "“夕阳把海浪染成金粉色，你悄悄牵住了我的手。”",
     minAffinity: 60,
@@ -259,7 +253,6 @@ export const POLAROIDS: Polaroid[] = [
   {
     id: "photo_firework",
     title: "夏夜烟火约定",
-    image: "/assets/character/koko-relieved-green.png",
     dateTag: "市集夜空下",
     caption: "“烟火在头顶炸开的那一刻，我许了一个关于你的愿望。”",
     minAffinity: 80,

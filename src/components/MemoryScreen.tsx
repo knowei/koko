@@ -301,7 +301,11 @@ export function MemoryScreen() {
                   <div className="polaroid-tape" />
                   <div className="polaroid-photo">
                     {unlocked ? (
-                      <img src={p.image} alt={p.title} />
+                      <div className="polaroid-photo-placeholder" aria-label={`${p.title}照片待生成`}>
+                        <span aria-hidden="true">📷</span>
+                        <strong>照片待生成</strong>
+                        <small>后续将根据共同经历生成</small>
+                      </div>
                     ) : (
                       <div className="polaroid-lock-placeholder">
                         <span className="lock-icon">🔒</span>

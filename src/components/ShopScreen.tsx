@@ -88,7 +88,10 @@ export function ShopScreen() {
           {/* Base skin: blue */}
           <article className={`skin-card ${activeSkin === "blue" ? "equipped" : ""} ${previewSkin === "blue" ? "previewing" : ""}`}>
             <div className="skin-preview">
-              <img src="./assets/character/koko-base.png" alt={`${companionName}的浅蓝长裙`} />
+              <div className="skin-preview-placeholder blue" aria-label="浅蓝长裙装扮预览">
+                <span aria-hidden="true">👗</span>
+                <small>浅蓝</small>
+              </div>
             </div>
             <div className="skin-info">
               <strong>浅蓝长裙</strong>
@@ -115,7 +118,10 @@ export function ShopScreen() {
             return (
               <article key={product.id} className={`skin-card ${equipped ? "equipped" : ""} ${isPreviewing ? "previewing" : ""}`}>
                 <div className="skin-preview mint">
-                  <img src="./assets/character/koko-base-green.png" alt={`${companionName}的薄荷绿裙`} />
+                  <div className="skin-preview-placeholder mint" aria-label={`${product.name}装扮预览`}>
+                    <span aria-hidden="true">👗</span>
+                    <small>薄荷绿</small>
+                  </div>
                 </div>
                 <div className="skin-info">
                   <strong>{product.name}</strong>
