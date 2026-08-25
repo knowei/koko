@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import Anthropic from "@anthropic-ai/sdk";
+import { Agent, setGlobalDispatcher } from "undici";
+setGlobalDispatcher(new Agent({ connect: { family: 4, timeout: 30_000 } }));
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
