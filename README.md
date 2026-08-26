@@ -56,7 +56,7 @@ git push github v0.2.2
 
 标签构建通过后会自动创建 GitHub Release，并把 EXE 和 APK 作为永久发布附件上传。流程使用仓库自动提供的 `GITHUB_TOKEN`，无需配置 Personal Access Token。
 
-正式 APK 生成在 `android/app/build/outputs/apk/release/app-release.apk`。首次打开后在设置中填写服务器地址，例如 `http://服务器IP:8080`；正式发布须为 GitHub Actions 配置 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS` 与 `ANDROID_KEY_PASSWORD` 四个仓库 Secret，确保后续更新使用同一签名证书。
+正式 APK 生成在 `android/app/build/outputs/apk/release/app-release.apk`。首次打开后在设置中填写服务器地址，例如 `http://服务器IP:8080`；正式发布须为 GitHub Actions 配置 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS` 与 `ANDROID_KEY_PASSWORD` 四个仓库 Secret，确保后续更新使用同一签名证书。缺少任一项时，工作流会明确停止，不会误上传未签名的 APK。
 
 本机首次打包前，将 `android/keystore.properties.example` 复制为 `android/keystore.properties`，并填写自己的签名证书信息。`android/app/koko-release.jks` 与 `android/keystore.properties` 必须妥善备份且不可提交；遗失后，Android 将无法把后续版本作为当前 App 的更新安装。
 
