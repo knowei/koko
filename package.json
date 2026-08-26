@@ -1,7 +1,7 @@
 {
   "name": "ai-companion",
   "private": true,
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "妹妹 AI 伴侣与桌面陪伴",
   "author": "妹妹",
   "type": "module",
@@ -20,7 +20,8 @@
     "dev:desktop": "concurrently -n web,api,pet -c cyan,magenta,yellow \"vite\" \"tsx watch server/index.ts\" \"electron electron/main.cjs\"",
     "build:installer": "npm run build && electron-builder --win nsis --publish never",
     "mobile:sync": "npm run build && cap sync android",
-    "build:apk": "npm run mobile:sync && cd android && gradlew.bat assembleDebug",
+    "build:apk": "npm run mobile:sync && cd android && gradlew.bat assembleRelease",
+    "build:apk:debug": "npm run mobile:sync && cd android && gradlew.bat assembleDebug",
     "build:packager": "npm run build && npx @electron/packager . \"妹妹陪伴\" --platform=win32 --arch=x64 --out=release --overwrite --icon=\"build/koko-app-icon.ico\" --ignore=\"^[/\\\\](src|server|scripts|scratch|docs|backups|live2d-source|release|dist-installer|node_modules|\\.git)\""
   },
   "dependencies": {
