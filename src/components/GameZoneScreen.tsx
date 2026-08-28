@@ -706,14 +706,14 @@ export function GameZoneScreen({ onBack }: GameZoneScreenProps) {
               <strong className="stat-num">{todayGamesCount} 局</strong>
             </div>
             <div className="game-stat-divider" />
-            <div className="game-stat-item">
+            <div className="game-stat-item affinity-stat">
               <span className="stat-label">当前亲密</span>
-              <strong className="stat-num" style={{ color: "#e0245e" }}>❤ {affinity}</strong>
+              <strong className="stat-num">❤ {affinity}</strong>
             </div>
             <div className="game-stat-divider" />
-            <div className="game-stat-item">
+            <div className="game-stat-item mood-stat">
               <span className="stat-label">妹妹心情</span>
-              <strong className="stat-num" style={{ color: "#059669" }}>🌸 {mood}/100</strong>
+              <strong className="stat-num">🌸 {mood}/100</strong>
             </div>
           </div>
 

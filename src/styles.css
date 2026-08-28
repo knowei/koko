@@ -1358,12 +1358,14 @@ body.sticky-window-mode #root {
 /* ---- side panel ---- */
 .side {
   position: relative;
-  width: 232px;
+  width: 276px;
+  min-width: 0;
   flex: none;
   display: flex;
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 .checkin {
   font-family: var(--display);
@@ -1421,6 +1423,7 @@ body.sticky-window-mode #root {
 .personality-card small { color: var(--ink-soft); }
 
 .side-block {
+  min-width: 0;
   background: #fff9f4;
   border: 1.5px solid var(--line);
   border-radius: 16px;
@@ -1887,16 +1890,28 @@ body.sticky-window-mode #root {
 }
 .milestone-card strong { color: var(--pink); font-family: var(--display); }
 .milestone-card p { margin: 7px 0 0; font-size: 13px; line-height: 1.65; }
-.memory-add { display: grid; grid-template-columns: 70px 1fr auto; gap: 6px; }
-.memory-add select, .memory-add input, .memory-add button {
+.memory-add,
+.memory-input-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; }
+.memory-add select, .memory-add input, .memory-add button,
+.memory-input-row select, .memory-input-row input, .memory-input-row button {
   min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 9px; background: #fff;
   color: var(--ink); font-family: var(--body); font-size: 11.5px;
 }
-.memory-add button { color: var(--pink); cursor: pointer; }
+.memory-input-row input { grid-column: 1 / -1; min-height: 36px; }
+.memory-add button,
+.memory-input-row button {
+  color: #fff;
+  background: linear-gradient(135deg, #ef8fa6, #e77894);
+  border-color: transparent;
+  cursor: pointer;
+  font-weight: 700;
+}
+.memory-add button:hover,
+.memory-input-row button:hover { filter: brightness(1.04); }
 .memory-list { display: grid; gap: 5px; margin-top: 8px; max-height: 150px; overflow-y: auto; }
 .memory-item { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 9px; background: #fff7f1; font-size: 11.5px; }
-.memory-item span { flex: 1; }
-.memory-item button { border: 0; background: none; color: #b98282; cursor: pointer; font-size: 15px; }
+.memory-item span { flex: 1; min-width: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.memory-item button { flex: none; border: 0; background: none; color: #b98282; cursor: pointer; font-size: 15px; }
 
 .models-row { display: flex; gap: 8px; align-items: stretch; }
 .models-row select,
@@ -1917,6 +1932,12 @@ body.sticky-window-mode #root {
 .mini-btn:disabled { opacity: .5; cursor: default; }
 .fld-note { font-size: 11px; color: var(--ink-soft); }
 .fld-note.err { color: #b5504f; }
+.settings-inline-link {
+  color: var(--pink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.fish-audio-fields { margin-top: 8px; }
 .link-like {
   background: none;
   border: none;
@@ -4080,9 +4101,12 @@ body.transparent-mode,
 .game-zone-screen {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
   gap: 12px;
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 12px 14px 28px;
   background: var(--bg);
 }
@@ -4099,6 +4123,7 @@ body.transparent-mode,
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .game-back-btn {
@@ -4235,6 +4260,36 @@ body.transparent-mode,
   color: var(--ink);
 }
 
+.verification-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.verification-code-btn {
+  min-width: 118px;
+  white-space: nowrap;
+}
+
+.form-hint {
+  margin-top: 7px;
+  color: #a1848c;
+  font-size: 12px;
+}
+
+@media (max-width: 520px) {
+  .verification-code-row {
+    grid-template-columns: 1fr;
+  }
+
+  .verification-code-btn {
+    width: 100%;
+  }
+}
+
+.game-stat-item.affinity-stat .stat-num { color: #e0245e; }
+.game-stat-item.mood-stat .stat-num { color: #059669; }
+
 .game-stat-divider {
   width: 1px;
   height: 24px;
@@ -4248,6 +4303,12 @@ body.transparent-mode,
   margin-top: 4px;
 }
 
+@media (min-width: 1500px) {
+  .game-cards-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .game-menu-card {
   position: relative;
   background: #ffffff;
@@ -4259,6 +4320,7 @@ body.transparent-mode,
   gap: 10px;
   transition: all 0.2s ease;
   box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  min-width: 0;
 }
 
 .game-menu-card:hover {
@@ -5140,7 +5202,10 @@ body.transparent-mode,
 }
 
 @media (max-width: 760px) {
-  .game-zone-screen { padding: 10px 9px 22px; }
+  .game-zone-screen {
+    gap: 10px;
+    padding: 8px 6px max(18px, env(safe-area-inset-bottom));
+  }
   .game-cards-grid { grid-template-columns: 1fr; }
   .game-zone-subtitle { display: none; }
   .game-companion-bar { padding: 8px 10px; }
@@ -5154,6 +5219,93 @@ body.transparent-mode,
   .card-name { display: none; }
 }
 
+@media (max-width: 640px) {
+  .game-zone-header {
+    align-items: flex-start;
+    gap: 8px;
+    padding: 2px 2px 8px;
+  }
+  .game-zone-header-left { gap: 8px; }
+  .game-back-btn {
+    min-height: 40px;
+    padding: 7px 11px;
+  }
+  .game-zone-title-box h2 { font-size: 15px; }
+  .game-zone-wallet {
+    flex: none;
+    padding-top: 2px;
+  }
+
+  .game-companion-bar {
+    align-items: flex-start;
+    gap: 8px;
+    border-radius: 14px;
+  }
+  .game-speech-bubble { padding: 7px 9px; }
+  .game-speech-content {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .game-lobby-content { gap: 10px; }
+  .game-stats-card {
+    padding: 9px 4px;
+    border-radius: 13px;
+  }
+  .game-stat-item { min-width: 0; }
+  .game-stat-item .stat-label { font-size: 10px; }
+  .game-stat-item .stat-num { font-size: 12.5px; }
+  .game-stat-divider { height: 28px; }
+
+  .game-category-tabs {
+    margin: 0 -2px;
+    padding: 1px 2px 5px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .game-category-tabs::-webkit-scrollbar { display: none; }
+  .cat-tab {
+    min-height: 40px;
+    padding: 7px 13px;
+    scroll-snap-align: start;
+  }
+
+  .game-cards-grid {
+    gap: 10px;
+    margin-top: 0;
+  }
+  .game-menu-card {
+    gap: 8px;
+    padding: 14px 12px 12px;
+    border-radius: 16px;
+  }
+  .game-card-icon { font-size: 28px; }
+  .game-card-info h3 {
+    padding-right: 92px;
+    font-size: 14px;
+  }
+  .game-card-info p {
+    margin: 4px 0 7px;
+    font-size: 11.5px;
+  }
+  .game-card-badge {
+    top: 11px;
+    right: 10px;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .game-card-actions {
+    gap: 7px;
+    padding-top: 4px;
+  }
+  .game-play-btn {
+    min-height: 44px;
+    padding: 9px 10px;
+  }
+}
+
 /* ==========================================================================
    🌱 DIRECTION 1: FOCUS COMPANION, LIFE TRACKER, STICKY NOTES & MEMORY ARCHIVE
    ========================================================================== */
@@ -5161,7 +5313,7 @@ body.transparent-mode,
 /* Quick Life Actions Grid in SidePanel */
 .life-quick-actions-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: 8px;
   margin: 6px 0;
 }
@@ -5177,6 +5329,8 @@ body.transparent-mode,
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  min-width: 0;
+  min-height: 50px;
 }
 
 .quick-life-card:hover {
@@ -5204,23 +5358,29 @@ body.transparent-mode,
   line-height: 1;
 }
 
-.quick-life-text {
+.quick-life-text,
+.quick-life-info {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
 }
 
-.quick-life-text strong {
+.quick-life-text strong,
+.quick-life-info strong {
   font-size: 12px;
   font-weight: 700;
   color: var(--ink);
   white-space: nowrap;
 }
 
-.quick-life-text small {
+.quick-life-text small,
+.quick-life-info small {
   font-size: 10px;
   color: var(--ink-soft);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ================= Focus Companion Modal ================= */
@@ -7051,6 +7211,78 @@ button:active,
 }
 
 /* Modal Mask Blur & Fade Animation */
+.confirm-dialog-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(55, 38, 43, 0.48);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  animation: modalMaskFade 0.18s ease-out;
+}
+
+.confirm-dialog {
+  width: min(420px, 100%);
+  padding: 24px;
+  border: 1.5px solid #f0ccd6;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #fffdfc, #fff7f8);
+  box-shadow: 0 24px 70px rgba(73, 45, 53, 0.3);
+  animation: confirmDialogIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes confirmDialogIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.confirm-dialog-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, #ed91aa, #de6f8e);
+  font: 800 21px/1 var(--display);
+  box-shadow: 0 7px 18px rgba(222, 111, 142, 0.24);
+}
+
+.confirm-dialog-icon.danger { background: linear-gradient(135deg, #f09a9a, #dc6675); }
+.confirm-dialog-content h2 { margin: 0; color: var(--ink); font: 700 19px/1.35 var(--display); }
+.confirm-dialog-content p { margin: 9px 0 0; color: var(--ink-soft); font-size: 13.5px; line-height: 1.7; }
+.confirm-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.confirm-dialog-actions button {
+  min-width: 96px;
+  min-height: 42px;
+  padding: 9px 18px;
+  border-radius: 12px;
+  font: 700 13px/1 var(--body);
+  cursor: pointer;
+}
+.confirm-dialog-cancel { border: 1px solid var(--line); color: var(--ink-soft); background: #fff; }
+.confirm-dialog-submit { border: 0; color: #fff; background: linear-gradient(135deg, #ed91aa, #de6f8e); }
+.confirm-dialog-submit.danger { background: linear-gradient(135deg, #eb8b95, #d95f70); }
+.confirm-dialog-actions button:focus-visible { outline: 3px solid rgba(231, 119, 149, 0.25); outline-offset: 2px; }
+
+@media (max-width: 520px) {
+  .confirm-dialog-mask {
+    place-items: end center;
+    padding: 12px 10px max(12px, env(safe-area-inset-bottom));
+  }
+  .confirm-dialog {
+    width: 100%;
+    padding: 20px 18px 18px;
+    border-radius: 22px;
+  }
+  .confirm-dialog-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .confirm-dialog-actions button { width: 100%; min-height: 46px; }
+}
+
 .modal-mask {
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);

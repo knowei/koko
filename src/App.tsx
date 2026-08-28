@@ -16,6 +16,7 @@ import { DesktopPetWidget } from "@/components/DesktopPetWidget";
 import { FocusCompanionModal } from "@/components/FocusCompanionModal";
 import { StickyNotesModal } from "@/components/StickyNotesModal";
 import { LifeCompanionModal } from "@/components/LifeCompanionModal";
+import { useConfirmDialog } from "@/components/ConfirmDialog";
 
 declare global {
   interface Window {
@@ -36,6 +37,7 @@ declare global {
 }
 
 export default function App() {
+  const confirmDialog = useConfirmDialog();
   const affinity = useStore((s) => s.affinity);
   const mood = useStore((s) => s.mood);
   const provider = useStore((s) => s.provider);
@@ -93,7 +95,10 @@ export default function App() {
   }, [isMiniCompanion]);
 
   useEffect(() => {
-    document.title = `${profile.name || "妹妹"} · 伴侣陪伴`;
+    const companionName = profile.name.trim();
+    document.title = companionName && companionName !== "妹妹"
+      ? `${companionName} · 妹妹陪伴`
+      : "妹妹陪伴";
   }, [profile.name]);
 
   const lv = affinityLevel(affinity);
@@ -296,8 +301,14 @@ export default function App() {
               <button
                 className="system-btn reset-btn"
                 title="清空记忆重新开始"
-                onClick={() => {
-                  if (confirm("重新开始会清空聊天、亲密度、心情、性格成长和外出记录，但会保留 API 设置。确定吗？")) resetMemory();
+                onClick={async () => {
+                  const confirmed = await confirmDialog({
+                    title: "重新开始陪伴？",
+                    description: "聊天、亲密度、心情、性格成长和外出记录都会清空，但会保留 API 设置。",
+                    confirmLabel: "重新开始",
+                    tone: "danger",
+                  });
+                  if (confirmed) resetMemory();
                 }}
               >
                 ↺

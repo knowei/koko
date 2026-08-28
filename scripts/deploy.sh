@@ -21,6 +21,7 @@ fi
 
 DB_PASSWORD="$(grep -E '^POSTGRES_PASSWORD=' .env | tail -n 1 | cut -d= -f2- || true)"
 AUTH_SECRET_VALUE="$(grep -E '^AUTH_SECRET=' .env | tail -n 1 | cut -d= -f2- || true)"
+SMTP_AUTH_CODE_VALUE="$(grep -E '^SMTP_AUTH_CODE=' .env | tail -n 1 | cut -d= -f2- || true)"
 if [[ ! "$DB_PASSWORD" =~ ^[A-Za-z0-9]{24,}$ ]]; then
   echo "POSTGRES_PASSWORD 必须是至少 24 位的字母和数字。"
   exit 1
@@ -28,6 +29,9 @@ fi
 if [[ ${#AUTH_SECRET_VALUE} -lt 32 || "$AUTH_SECRET_VALUE" == *"请替换"* || "$AUTH_SECRET_VALUE" == *"change-this"* ]]; then
   echo "AUTH_SECRET 必须替换为至少 32 位的随机字符串。"
   exit 1
+fi
+if [[ -z "$SMTP_AUTH_CODE_VALUE" || "$SMTP_AUTH_CODE_VALUE" == *"your_"* ]]; then
+  echo "警告：SMTP_AUTH_CODE 尚未配置，注册与找回密码验证码将无法发送。"
 fi
 
 PIKAFISH_VERSION="2026-01-02"

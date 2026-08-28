@@ -530,7 +530,7 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
             type="button"
             className="pet-ctrl-btn close-btn"
             onClick={() => window.electronAPI?.close()}
-            title="退出可可陪伴"
+            title="退出妹妹陪伴"
           >
             <span>✕</span>
           </button>

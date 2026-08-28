@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useStore } from "@/store/companionStore";
 import { Avatar } from "@/components/Avatar";
 import { apiUrl } from "@/lib/api";
+import { useConfirmDialog } from "@/components/ConfirmDialog";
 
 interface AccountModalProps {
   onClose: () => void;
@@ -17,6 +18,7 @@ interface AccountData {
 }
 
 export function AccountModal({ onClose }: AccountModalProps) {
+  const confirmDialog = useConfirmDialog();
   const profile = useStore((s) => s.profile);
   const activeSkin = useStore((s) => s.activeSkin);
   const exportSave = useStore((s) => s.exportSave);
@@ -29,6 +31,8 @@ export function AccountModal({ onClose }: AccountModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [sendingCode, setSendingCode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -100,12 +104,17 @@ export function AccountModal({ onClose }: AccountModalProps) {
       }
     }
 
+    if ((tab === "register" || tab === "forgot") && !/^\d{6}$/.test(verificationCode)) {
+      setNotice({ type: "error", text: "请输入邮件中的 6 位验证码。" });
+      return;
+    }
+
     setLoading(true);
     try {
       if (tab === "login") {
         const res = await accountRequest("/api/auth/login", {
           method: "POST",
-          body: JSON.stringify({ email: emailTrimmed, password }),
+          body: JSON.stringify({ email: emailTrimmed, code: verificationCode, password }),
         });
         localStorage.setItem("koko-account-token", res.token);
         setToken(res.token);
@@ -126,17 +135,41 @@ export function AccountModal({ onClose }: AccountModalProps) {
       } else if (tab === "forgot") {
         const res = await accountRequest("/api/auth/reset-password", {
           method: "POST",
-          body: JSON.stringify({ email: emailTrimmed, newPassword: password }),
+          body: JSON.stringify({ email: emailTrimmed, code: verificationCode, newPassword: password }),
         });
         setNotice({ type: "success", text: res.message || "密码重置成功，请使用新密码登录。" });
         setTab("login");
         setPassword("");
         setConfirmPassword("");
+        setVerificationCode("");
+        setVerificationCode("");
       }
     } catch (err) {
       setNotice({ type: "error", text: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const sendVerificationCode = async () => {
+    const emailTrimmed = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(emailTrimmed)) {
+      setNotice({ type: "error", text: "请先输入格式正确的注册邮箱。" });
+      return;
+    }
+    setNotice(null);
+    setSendingCode(true);
+    try {
+      const path = tab === "register" ? "/api/auth/register/code" : "/api/auth/password-reset/code";
+      const res = await accountRequest(path, {
+        method: "POST",
+        body: JSON.stringify({ email: emailTrimmed }),
+      });
+      setNotice({ type: "success", text: res.message || "验证码已发送，请检查邮箱。" });
+    } catch (err) {
+      setNotice({ type: "error", text: err instanceof Error ? err.message : "验证码发送失败。" });
+    } finally {
+      setSendingCode(false);
     }
   };
 
@@ -159,7 +192,13 @@ export function AccountModal({ onClose }: AccountModalProps) {
   };
 
   const downloadCloud = async () => {
-    if (!confirm(`恢复云存档将会覆盖当前设备上的聊天与好感度进度，但会保留您的模型 API Key 配置。确定要恢复吗？`)) {
+    const confirmed = await confirmDialog({
+      title: "恢复云端存档？",
+      description: "当前设备上的聊天与好感度进度将被覆盖，但会保留模型 API Key 配置。",
+      confirmLabel: "确认恢复",
+      tone: "danger",
+    });
+    if (!confirmed) {
       return;
     }
     setNotice(null);
@@ -179,8 +218,14 @@ export function AccountModal({ onClose }: AccountModalProps) {
     }
   };
 
-  const handleLogout = () => {
-    if (!confirm("退出登录后本地对话仍然会保留，但将暂停云端备份。确定退出吗？")) return;
+  const handleLogout = async () => {
+    const confirmed = await confirmDialog({
+      title: "退出当前账号？",
+      description: "本地聊天仍会保留，但云端备份与跨设备同步将暂停。",
+      confirmLabel: "退出登录",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     localStorage.removeItem("koko-account-token");
     setToken("");
     setAccountData(null);
@@ -282,7 +327,7 @@ export function AccountModal({ onClose }: AccountModalProps) {
               <button
                 type="button"
                 className="account-danger-link"
-                onClick={handleLogout}
+                onClick={() => void handleLogout()}
               >
                 退出登录
               </button>
@@ -332,6 +377,36 @@ export function AccountModal({ onClose }: AccountModalProps) {
                   autoFocus
                 />
               </div>
+
+              {(tab === "register" || tab === "forgot") && (
+                <div className="form-group">
+                  <label className="form-label">
+                    <span>🔢 邮箱验证码</span>
+                  </label>
+                  <div className="verification-code-row">
+                    <input
+                      type="text"
+                      className="account-input"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      placeholder="请输入 6 位验证码"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="account-outline-btn verification-code-btn"
+                      onClick={() => void sendVerificationCode()}
+                      disabled={sendingCode}
+                    >
+                      {sendingCode ? "发送中…" : "发送验证码"}
+                    </button>
+                  </div>
+                  <div className="form-hint">验证码 10 分钟内有效，请勿转发给他人。</div>
+                </div>
+              )}
 
               <div className="form-group">
                 <div className="form-label-row">

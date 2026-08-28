@@ -250,7 +250,7 @@ function refreshTrayMenu() {
       { label: '⚙ 打开设置', click: () => showWindow('full', 'settings') },
       { type: 'separator' },
       {
-        label: '退出可可陪伴',
+        label: '退出妹妹陪伴',
         click: () => {
           isQuitting = true;
           app.quit();

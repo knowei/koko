@@ -2,10 +2,13 @@ import { useState } from "react";
 import { useStore } from "@/store/companionStore";
 import type { ProviderCfg } from "@/lib/chat";
 import type { ReplyStyle } from "@/data/persona";
-import { EMOTION_STYLES, PRESET_EDGE_VOICES, ttsPlayer, type TTSSettings } from "@/lib/tts";
+import type { TTSSettings } from "@/lib/tts";
 import { apiUrl, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
+import { VoiceSettingsSection } from "@/components/settings/VoiceSettingsSection";
+import { useConfirmDialog } from "@/components/ConfirmDialog";
 
 export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void; onOpenAccount?: () => void }) {
+  const confirmDialog = useConfirmDialog();
   const provider = useStore((s) => s.provider);
   const setProvider = useStore((s) => s.setProvider);
   const replyStyle = useStore((s) => s.replyStyle);
@@ -58,7 +61,11 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
   const [customTtsKey, setCustomTtsKey] = useState(ttsSettings.customApiKey ?? "");
   const [customTtsModel, setCustomTtsModel] = useState(ttsSettings.customModel ?? "tts-1");
   const [customTtsVoice, setCustomTtsVoice] = useState(ttsSettings.customVoice ?? "alloy");
-  const [ttsTesting, setTtsTesting] = useState(false);
+  const [fishApiKey, setFishApiKey] = useState(ttsSettings.fishApiKey ?? "");
+  const [fishReferenceId, setFishReferenceId] = useState(ttsSettings.fishReferenceId ?? "");
+  const [fishModel, setFishModel] = useState(
+    ttsSettings.fishModel?.startsWith("fishaudio-") ? ttsSettings.fishModel : "fishaudio-s21pro-flash",
+  );
 
   const downloadSave = () => {
     const blob = new Blob([JSON.stringify(exportSave(), null, 2)], { type: "application/json" });
@@ -72,7 +79,14 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
   };
 
   const loadSave = async (file?: File) => {
-    if (!file || !confirm("导入会覆盖当前聊天、关系、积分、档案和记忆，但保留 API 设置。确定继续吗？")) return;
+    if (!file) return;
+    const confirmed = await confirmDialog({
+      title: "导入这份存档？",
+      description: "当前聊天、关系、积分、档案和记忆将被覆盖，但会保留 API 设置。",
+      confirmLabel: "确认导入",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       const error = importSave(JSON.parse(await file.text()));
       setSaveNotice(error || "存档导入成功，API 设置已保留。");
@@ -146,6 +160,42 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
     }
   };
 
+  const voiceSettings: TTSSettings = {
+    enabled: ttsEnabled,
+    autoPlay: ttsAutoPlay,
+    engine: ttsEngine,
+    voice: ttsVoice,
+    rate: ttsRate,
+    pitch: ttsPitch,
+    emotionStyle: ttsEmotionStyle,
+    moodModulation: ttsMoodModulation,
+    fishApiKey,
+    fishReferenceId,
+    fishModel,
+    customBaseURL: customTtsUrl,
+    customApiKey: customTtsKey,
+    customModel: customTtsModel,
+    customVoice: customTtsVoice,
+  };
+
+  const updateVoiceSettings = (settings: TTSSettings) => {
+    setTtsEnabled(settings.enabled);
+    setTtsAutoPlay(settings.autoPlay);
+    setTtsEngine(settings.engine);
+    setTtsVoice(settings.voice);
+    setTtsRate(settings.rate);
+    setTtsPitch(settings.pitch);
+    setTtsEmotionStyle(settings.emotionStyle);
+    setTtsMoodModulation(settings.moodModulation);
+    setFishApiKey(settings.fishApiKey ?? "");
+    setFishReferenceId(settings.fishReferenceId ?? "");
+    setFishModel(settings.fishModel ?? "");
+    setCustomTtsUrl(settings.customBaseURL ?? "");
+    setCustomTtsKey(settings.customApiKey ?? "");
+    setCustomTtsModel(settings.customModel ?? "");
+    setCustomTtsVoice(settings.customVoice ?? "");
+  };
+
   const save = () => {
     const visionProvider = {
       enabled: visionEnabled,
@@ -179,48 +229,16 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
     });
     setWeather(weatherPreview);
     setTtsSettings({
-      enabled: ttsEnabled,
-      autoPlay: ttsAutoPlay,
-      engine: ttsEngine,
-      voice: ttsVoice,
-      rate: ttsRate,
-      pitch: ttsPitch,
-      emotionStyle: ttsEmotionStyle,
-      moodModulation: ttsMoodModulation,
-      customBaseURL: customTtsUrl.trim(),
-      customApiKey: customTtsKey.trim(),
-      customModel: customTtsModel.trim(),
-      customVoice: customTtsVoice.trim(),
+      ...voiceSettings,
+      fishApiKey: voiceSettings.fishApiKey?.trim(),
+      fishReferenceId: voiceSettings.fishReferenceId?.trim(),
+      fishModel: voiceSettings.fishModel?.trim(),
+      customBaseURL: voiceSettings.customBaseURL?.trim(),
+      customApiKey: voiceSettings.customApiKey?.trim(),
+      customModel: voiceSettings.customModel?.trim(),
+      customVoice: voiceSettings.customVoice?.trim(),
     });
     onClose();
-  };
-
-  const testVoice = async () => {
-    setTtsTesting(true);
-    try {
-      await ttsPlayer.play({
-        messageId: "test-voice-preview",
-        text: `（开心地笑了笑）${userNickname}，听得到${name}的声音吗？今天也要一直陪着我哦~`,
-        settings: {
-          enabled: true,
-          autoPlay: false,
-          engine: ttsEngine,
-          voice: ttsVoice,
-          rate: ttsRate,
-          pitch: ttsPitch,
-          emotionStyle: ttsEmotionStyle,
-          moodModulation: ttsMoodModulation,
-          customBaseURL: customTtsUrl.trim(),
-          customApiKey: customTtsKey.trim(),
-          customModel: customTtsModel.trim(),
-          customVoice: customTtsVoice.trim(),
-        },
-        mood: 75,
-        hour: new Date().getHours(),
-      });
-    } finally {
-      setTtsTesting(false);
-    }
   };
 
   return (
@@ -262,148 +280,12 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
             </div>
           </div>
 
-          {/* 2. 声音与语音 */}
-          <div className="settings-section-card">
-            <div className="settings-section-title">
-              <span className="title-icon">🎙️</span>
-              <span>声音与语音播报 (TTS)</span>
-            </div>
-            
-            <div className="toggle-row">
-              <div className="toggle-label-group">
-                <strong>开启伴侣语音</strong>
-                <div className="fld-note">允许点击聊天气泡播放高保真语音</div>
-              </div>
-              <label className="custom-switch">
-                <input type="checkbox" checked={ttsEnabled} onChange={(e) => setTtsEnabled(e.target.checked)} />
-                <span className="switch-slider" />
-              </label>
-            </div>
-
-            {ttsEnabled && (
-              <div className="tts-expanded-settings">
-                <div className="toggle-row">
-                  <div className="toggle-label-group">
-                    <strong>自动朗读回复</strong>
-                    <div className="fld-note">{name || "妹妹"}回复完成后自动播报语音</div>
-                  </div>
-                  <label className="custom-switch">
-                    <input type="checkbox" checked={ttsAutoPlay} onChange={(e) => setTtsAutoPlay(e.target.checked)} />
-                    <span className="switch-slider" />
-                  </label>
-                </div>
-
-                <label className="fld">
-                  <span>语音引擎</span>
-                  <select value={ttsEngine} onChange={(e) => setTtsEngine(e.target.value as any)}>
-                    <option value="edge-tts">极清神经网络语音 (Edge Neural · 免Key高保真)</option>
-                    <option value="web-speech">浏览器本地语音 (Web Speech · 离线零开销)</option>
-                    <option value="custom">自定义 TTS 接口 (OpenAI / GPT-SoVITS)</option>
-                  </select>
-                </label>
-
-                {ttsEngine === "edge-tts" && (
-                  <label className="fld">
-                    <span>角色音色（二次元与声优库）</span>
-                    <select value={ttsVoice} onChange={(e) => setTtsVoice(e.target.value)}>
-                      <optgroup label="🌸 二次元与声优系">
-                        {PRESET_EDGE_VOICES.filter((v) => v.category === "anime").map((v) => (
-                          <option key={v.id} value={v.id}>{v.name} · {v.description}</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="☕ 温婉生活感伴侣">
-                        {PRESET_EDGE_VOICES.filter((v) => v.category === "gentle").map((v) => (
-                          <option key={v.id} value={v.id}>{v.name} · {v.description}</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="🎭 特色方言与元气">
-                        {PRESET_EDGE_VOICES.filter((v) => v.category === "dialect").map((v) => (
-                          <option key={v.id} value={v.id}>{v.name} · {v.description}</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="🇯🇵 日语正统动漫声优">
-                        {PRESET_EDGE_VOICES.filter((v) => v.category === "japanese").map((v) => (
-                          <option key={v.id} value={v.id}>{v.name} · {v.description}</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="☀️ 阳光少年">
-                        {PRESET_EDGE_VOICES.filter((v) => v.category === "boy").map((v) => (
-                          <option key={v.id} value={v.id}>{v.name} · {v.description}</option>
-                        ))}
-                      </optgroup>
-                    </select>
-                  </label>
-                )}
-
-                <label className="fld">
-                  <span>情感表达模式</span>
-                  <select value={ttsEmotionStyle} onChange={(e) => setTtsEmotionStyle(e.target.value as any)}>
-                    {EMOTION_STYLES.map((st) => (
-                      <option key={st.id} value={st.id}>{st.name} — {st.desc}</option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="toggle-row">
-                  <div className="toggle-label-group">
-                    <strong>情绪与时段动态变调</strong>
-                    <div className="fld-note">开心时语调轻快，深夜困倦时语速放缓</div>
-                  </div>
-                  <label className="custom-switch">
-                    <input type="checkbox" checked={ttsMoodModulation} onChange={(e) => setTtsMoodModulation(e.target.checked)} />
-                    <span className="switch-slider" />
-                  </label>
-                </div>
-
-                {ttsEngine === "custom" && (
-                  <div className="custom-fields">
-                    <label className="fld">
-                      <span>TTS 接口地址 (Base URL)</span>
-                      <input value={customTtsUrl} onChange={(e) => setCustomTtsUrl(e.target.value)} placeholder="https://api.openai.com/v1 或 http://127.0.0.1:9880" />
-                    </label>
-                    <label className="fld">
-                      <span>API Key (可选)</span>
-                      <input type="password" value={customTtsKey} onChange={(e) => setCustomTtsKey(e.target.value)} placeholder="sk-..." />
-                    </label>
-                    <div className="profile-grid">
-                      <label className="fld">
-                        <span>模型名 Model</span>
-                        <input value={customTtsModel} onChange={(e) => setCustomTtsModel(e.target.value)} placeholder="tts-1" />
-                      </label>
-                      <label className="fld">
-                        <span>音色 Voice</span>
-                        <input value={customTtsVoice} onChange={(e) => setCustomTtsVoice(e.target.value)} placeholder="alloy / nova" />
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                <div className="profile-grid range-grid">
-                  <label className="fld">
-                    <div className="range-title-row">
-                      <span>语速</span>
-                      <span className="range-val-badge">{ttsRate.toFixed(2)}x</span>
-                    </div>
-                    <input className="custom-slider" type="range" min="0.7" max="1.4" step="0.05" value={ttsRate} onChange={(e) => setTtsRate(Number(e.target.value))} />
-                  </label>
-                  <label className="fld">
-                    <div className="range-title-row">
-                      <span>语调</span>
-                      <span className="range-val-badge">{ttsPitch.toFixed(2)}x</span>
-                    </div>
-                    <input className="custom-slider" type="range" min="0.7" max="1.3" step="0.05" value={ttsPitch} onChange={(e) => setTtsPitch(Number(e.target.value))} />
-                  </label>
-                </div>
-
-                <div className="voice-test-row">
-                  <button className="test-voice-btn" type="button" disabled={ttsTesting} onClick={testVoice}>
-                    {ttsTesting ? "正在合成音频…" : `🎧 试听${name || "妹妹"}的声音`}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
+          <VoiceSettingsSection
+            companionName={name.trim() || "妹妹"}
+            userNickname={userNickname.trim() || "哥哥"}
+            value={voiceSettings}
+            onChange={updateVoiceSettings}
+          />
           {/* 3. 伴侣回复方式 */}
           <div className="settings-section-card">
             <div className="settings-section-title">

@@ -22,6 +22,14 @@ export async function initPlatform() {
       version INTEGER NOT NULL DEFAULT 1, payload JSONB NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS email_verification_codes (
+      email TEXT NOT NULL, purpose TEXT NOT NULL, code_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
+      last_sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      window_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      send_count INTEGER NOT NULL DEFAULT 1,
+      PRIMARY KEY(email, purpose)
+    );
     CREATE TABLE IF NOT EXISTS wallets (
       user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       points INTEGER NOT NULL DEFAULT 50 CHECK(points >= 0)

@@ -4,7 +4,7 @@ import { stripReasoningContent } from "./reasoningFilter";
 export interface TTSSettings {
   enabled: boolean;
   autoPlay: boolean;
-  engine: "edge-tts" | "web-speech" | "custom";
+  engine: "edge-tts" | "fish-audio" | "web-speech" | "custom";
   voice: string;
   rate: number; // 0.7 ~ 1.4
   pitch: number; // 0.7 ~ 1.3
@@ -14,6 +14,16 @@ export interface TTSSettings {
   customApiKey?: string;
   customModel?: string;
   customVoice?: string;
+  fishApiKey?: string;
+  fishReferenceId?: string;
+  fishModel?: string;
+}
+
+export interface FishVoiceModel {
+  id: string;
+  title: string;
+  description: string;
+  modelIds: string[];
 }
 
 export const DEFAULT_TTS_SETTINGS: TTSSettings = {
@@ -199,8 +209,16 @@ class TTSPlayer {
     settings: TTSSettings;
     mood?: number;
     hour?: number;
+    fallbackToWebSpeech?: boolean;
   }): Promise<void> {
-    const { messageId, text, settings, mood = 60, hour = new Date().getHours() } = options;
+    const {
+      messageId,
+      text,
+      settings,
+      mood = 60,
+      hour = new Date().getHours(),
+      fallbackToWebSpeech = true,
+    } = options;
 
     if (!settings.enabled) return;
     const speechText = cleanTextForSpeech(text);
@@ -234,6 +252,16 @@ class TTSPlayer {
         engine: settings.engine,
       };
 
+
+      if (settings.engine === "fish-audio") {
+        payload.fishConfig = {
+          apiKey: settings.fishApiKey?.trim(),
+          referenceId: settings.fishReferenceId?.trim(),
+          model: settings.fishModel?.trim().startsWith("fishaudio-")
+            ? settings.fishModel.trim()
+            : "fishaudio-s21pro-flash",
+        };
+      }
       if (settings.engine === "custom" && settings.customBaseURL) {
         payload.customConfig = {
           baseURL: settings.customBaseURL,
@@ -276,6 +304,8 @@ class TTSPlayer {
 
       await audio.play();
     } catch (err) {
+      this.notify(null);
+      if (!fallbackToWebSpeech) throw err;
       console.warn("[TTS] 云端语音合成失败，尝试回退至浏览器内置语音：", err);
       if (this.currentSpeakingId === messageId) {
         this.playWebSpeech(messageId, speechText, rate, pitch);
