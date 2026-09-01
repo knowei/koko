@@ -31,6 +31,7 @@ export interface ChatContext {
   weather: { location: string; temperature: number; apparentTemperature: number; weatherCode: number; label: string; isDay: boolean; updatedAt: number } | null;
   adultMode: boolean;
   memories: Array<{ id: string; text: string; kind: MemoryKind; ts: number }>;
+  lorebookContext?: string;
 }
 
 export interface MemoryAnalysisResult {

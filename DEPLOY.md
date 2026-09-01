@@ -33,8 +33,8 @@ AUTH_SECRET=your_32_byte_hex_secret
 SMTP_HOST=smtp.qq.com
 SMTP_PORT=465
 SMTP_SECURE=true
-SMTP_USER=2994172661@qq.com
-SMTP_FROM=妹妹陪伴 <2994172661@qq.com>
+SMTP_USER=your_email@qq.com
+SMTP_FROM=妹妹陪伴 <your_email@qq.com>
 SMTP_AUTH_CODE=your_qq_smtp_authorization_code
 EMAIL_CODE_EXPIRES_MINUTES=10
 
@@ -44,7 +44,7 @@ ALLOWED_PROVIDER_HOSTS=api.openai.com,api.deepseek.com,dashscope.aliyuncs.com,op
 
 ### QQ 邮箱验证码配置
 
-注册账号和找回密码都需要邮箱验证码。登录 `2994172661@qq.com` 的网页版 QQ 邮箱，在“设置 → 账号”中开启 SMTP 服务并生成授权码，然后将授权码填入服务器 `.env` 的 `SMTP_AUTH_CODE`。这里必须填写 SMTP 授权码，不能填写 QQ 登录密码；`.env` 也不能提交到 Git。
+注册账号和找回密码都需要邮箱验证码。登录你的网页版 QQ 邮箱，在“设置 → 账号”中开启 SMTP 服务并生成授权码，然后将授权码填入服务器 `.env` 的 `SMTP_AUTH_CODE`。这里必须填写 SMTP 授权码，不能填写 QQ 登录密码；`.env` 也不能提交到 Git。
 
 邮件默认通过 `smtp.qq.com:465` 的 SSL 连接发送。修改邮件配置后必须重新创建应用容器：
 

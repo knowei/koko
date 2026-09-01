@@ -16,6 +16,7 @@ import { DesktopPetWidget } from "@/components/DesktopPetWidget";
 import { FocusCompanionModal } from "@/components/FocusCompanionModal";
 import { StickyNotesModal } from "@/components/StickyNotesModal";
 import { LifeCompanionModal } from "@/components/LifeCompanionModal";
+import { LorebookModal } from "@/components/LorebookModal";
 import { useConfirmDialog } from "@/components/ConfirmDialog";
 
 declare global {
@@ -56,6 +57,7 @@ export default function App() {
   const [showFocusModal, setShowFocusModal] = useState(false);
   const [showStickyModal, setShowStickyModal] = useState(false);
   const [showLifeModal, setShowLifeModal] = useState(false);
+  const [showLorebookModal, setShowLorebookModal] = useState(false);
   const [isMiniCompanion, setIsMiniCompanion] = useState(() => {
     return typeof window !== "undefined" && window.location.search.includes("mode=pet");
   });
@@ -280,6 +282,13 @@ export default function App() {
               >
                 📌 便签
               </button>
+              <button
+                className="tool-pill-btn lorebook-tool-btn"
+                title="专属世界书与深度记忆设定"
+                onClick={() => setShowLorebookModal(true)}
+              >
+                📖 世界书
+              </button>
             </div>
 
             {/* 3. System & Account Actions */}
@@ -345,7 +354,7 @@ export default function App() {
           {activeView === "shop" ? (
             <ShopScreen />
           ) : activeView === "memories" ? (
-            <MemoryScreen />
+            <MemoryScreen onOpenLorebook={() => setShowLorebookModal(true)} />
           ) : activeView === "games" ? (
             <GameZoneScreen onBack={() => setActiveView("life")} />
           ) : (
@@ -356,6 +365,7 @@ export default function App() {
                   onOpenFocus={() => setShowFocusModal(true)}
                   onOpenLife={() => setShowLifeModal(true)}
                   onOpenSticky={() => setShowStickyModal(true)}
+                  onOpenLorebook={() => setShowLorebookModal(true)}
                 />
               </div>
               <div className="life-pane">
@@ -365,6 +375,7 @@ export default function App() {
                   onOpenFocus={() => setShowFocusModal(true)}
                   onOpenLife={() => setShowLifeModal(true)}
                   onOpenSticky={() => setShowStickyModal(true)}
+                  onOpenLorebook={() => setShowLorebookModal(true)}
                 />
               </div>
             </>
@@ -384,12 +395,19 @@ export default function App() {
         </nav>
       </div>
 
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} onOpenAccount={() => setShowAccount(true)} />}
+      {showSettings && (
+        <SettingsPanel
+          onClose={() => setShowSettings(false)}
+          onOpenAccount={() => setShowAccount(true)}
+          onOpenLorebook={() => setShowLorebookModal(true)}
+        />
+      )}
       {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
       {showPetWidget && <DesktopPetWidget onClose={() => setShowPetWidget(false)} />}
       <FocusCompanionModal isOpen={showFocusModal} onClose={() => setShowFocusModal(false)} />
       <StickyNotesModal isOpen={showStickyModal} onClose={() => setShowStickyModal(false)} />
       <LifeCompanionModal isOpen={showLifeModal} onClose={() => setShowLifeModal(false)} />
+      <LorebookModal open={showLorebookModal} onClose={() => setShowLorebookModal(false)} />
       <RandomEventModal />
     </div>
   );

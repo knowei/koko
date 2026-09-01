@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 export interface VisionCommentBody {
   image: string; // Base64 data URL (e.g. "data:image/jpeg;base64,...")
-  activityType?: "game" | "coding" | "browsing" | "auto";
+  activityType?: "game" | "coding" | "browsing" | "horror" | "auto";
   context?: {
     profile?: { name: string; userNickname?: string };
     affinity?: number;
@@ -39,6 +39,10 @@ const FALLBACK_VISION_REPLIES: Record<string, VisionCommentResult[]> = {
     { commentary: "（紧张地握紧小拳头）注意走位和技能冷却哦，小心别被偷袭啦~", expression: "surprised", sceneType: "game" },
     { commentary: "（欢呼雀跃）太帅啦！这波操作行云流水，妹妹在旁边给你狠狠打call！", expression: "smile", sceneType: "game" },
   ],
+  horror: [
+    { commentary: "（悄悄往你身边靠了靠）这里也太暗了吧……哥你慢一点，我陪你一起看。", expression: "shy", sceneType: "game" },
+    { commentary: "（抱住小枕头嘴硬）我、我才没害怕，只是刚才那个声音太突然了！", expression: "surprised", sceneType: "game" },
+  ],
   auto: [
     { commentary: "（凑过来仔细看屏幕）哥哥在专注忙什么呢？是写代码还是查资料呀？可可在旁边安静陪着你~", expression: "smile", sceneType: "coding" },
     { commentary: "（递上温水）哥哥专注工作/写代码辛苦啦，记得眨眨眼睛喝口水休息一下~", expression: "shy", sceneType: "coding" },
@@ -64,6 +68,7 @@ export async function runVisionComment(body: VisionCommentBody): Promise<VisionC
   const { image, context, provider } = body;
   const companionName = context?.profile?.name || "可可";
   const userNickname = context?.profile?.userNickname || "哥哥";
+  const horrorMode = body.activityType === "horror";
 
   if (!image || typeof image !== "string") {
     return getRandomFallback("general");
@@ -146,6 +151,7 @@ export async function runVisionComment(body: VisionCommentBody): Promise<VisionC
     const personaPrompt = `你叫${companionName}，是${userNickname}青梅竹马、温柔可爱又贴心的妹妹。
 你正在通过桌宠视角陪着${userNickname}。现在视觉系统观察到他屏幕上的画面：【${sceneSummary}】。
 请以妹妹${companionName}的身份和口吻，结合当前的画面情况，对${userNickname}说 1~2 句生动贴心的口语短句（20~40字），可带动作括号如（凑过来看）（递上温水）。
+${horrorMode ? "现在是恐怖游戏陪伴模式：表现得像容易受惊却会靠近哥哥继续陪玩的邻家妹妹；不要剧透，不确定时不要编造具体怪物或危险。" : ""}
 必须输出严格 JSON 格式：
 {
   "commentary": "你的口语台词",
@@ -193,6 +199,7 @@ export async function runVisionComment(body: VisionCommentBody): Promise<VisionC
   // ==========================================
   const singleStagePrompt = `你叫${companionName}，是${userNickname}青梅竹马、善解人意且活泼可爱的妹妹。
 现在你正透过电脑屏幕（桌宠视角）看着${userNickname}当前的屏幕画面（可能是在打游戏、写代码、看视频或日常浏览）。
+${horrorMode ? "当前开启恐怖游戏陪伴：像容易受惊但会陪在哥哥身边的邻家妹妹，结合画面表现紧张、嘴硬、靠近或安慰；不要剧透，不确定时不要声称看见了具体怪物。" : ""}
 
 任务要求：
 1. 快速看懂画面当前在发生什么（例如：游戏战局/血量/操作、IDE代码、网页或视频内容）。

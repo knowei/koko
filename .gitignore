@@ -8,6 +8,7 @@ release/
 dist-installer/
 dist-installer-*/
 dist-desktop/
+desktop-build/
 *.tsbuildinfo
 backups/
 scratch/

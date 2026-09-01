@@ -3,9 +3,9 @@ import nodemailer from "nodemailer";
 const SMTP_HOST = process.env.SMTP_HOST || "smtp.qq.com";
 const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const SMTP_SECURE = (process.env.SMTP_SECURE || "true").toLowerCase() !== "false";
-const SMTP_USER = process.env.SMTP_USER?.trim() || "2994172661@qq.com";
+const SMTP_USER = process.env.SMTP_USER?.trim() || "";
 const SMTP_AUTH_CODE = process.env.SMTP_AUTH_CODE?.trim() || "";
-const SMTP_FROM = process.env.SMTP_FROM?.trim() || `妹妹陪伴 <${SMTP_USER}>`;
+const SMTP_FROM = process.env.SMTP_FROM?.trim() || (SMTP_USER ? `妹妹陪伴 <${SMTP_USER}>` : "");
 
 export function isEmailConfigured() {
   return Boolean(SMTP_USER && SMTP_AUTH_CODE && SMTP_FROM);

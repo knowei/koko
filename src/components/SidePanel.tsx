@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { preferredOuting, useStore } from "@/store/companionStore";
-import { GIFTS, OUTINGS, TOPICS, personalityLabel, type MemoryKind, type Outing } from "@/data/persona";
+import { GIFTS, OUTINGS, TOPICS, getPersonalityArchetype, type MemoryKind, type Outing } from "@/data/persona";
 import { GALLERY_ITEMS, type GalleryItem } from "@/data/gallery";
 
 function todayStr() {
@@ -12,13 +12,16 @@ export function SidePanel({
   onOpenFocus,
   onOpenSticky,
   onOpenLife,
+  onOpenLorebook,
 }: {
   onOpenGames?: () => void;
   onOpenFocus?: () => void;
   onOpenSticky?: () => void;
   onOpenLife?: () => void;
+  onOpenLorebook?: () => void;
 }) {
   const affinity = useStore((s) => s.affinity);
+  const mood = useStore((s) => s.mood);
   const lastCheckIn = useStore((s) => s.lastCheckIn);
   const dailyCheckIn = useStore((s) => s.dailyCheckIn);
   const giveGift = useStore((s) => s.giveGift);
@@ -119,17 +122,75 @@ export function SidePanel({
             </div>
           </div>
         )}
+        {onOpenLorebook && (
+          <div className="quick-life-card lorebook-card" onClick={onOpenLorebook} role="button" tabIndex={0}>
+            <span className="quick-life-icon">📖</span>
+            <div className="quick-life-info">
+              <strong>专属世界书</strong>
+              <small>设定与深度记忆</small>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="side-block">
-        <div className="side-title">性格特征</div>
-        <div className="personality-tags">
-          <span className="personality-badge">
-            <strong>主导性格：</strong>
-            <span>{personalityLabel(personality, affinity)}</span>
-          </span>
-        </div>
-      </div>
+      {/* Dynamic Personality & Emotion Spectrum Card */}
+      {(() => {
+        const archetype = getPersonalityArchetype(personality, affinity, mood);
+        return (
+          <div className="side-block personality-matrix-card">
+            <div className="side-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>🎭 动态性格演化</span>
+              <span
+                style={{
+                  fontSize: "11px",
+                  padding: "2px 8px",
+                  borderRadius: "10px",
+                  background: `${archetype.badgeColor}20`,
+                  color: archetype.badgeColor,
+                  fontWeight: "700",
+                }}
+              >
+                {archetype.name}
+              </span>
+            </div>
+
+            <p style={{ margin: "4px 0 10px", fontSize: "11.5px", color: "#6b4a56", lineHeight: "1.45" }}>
+              {archetype.description}
+            </p>
+
+            <div className="personality-traits-bars">
+              <div className="trait-bar-row">
+                <div className="trait-label"><span>🌸 温柔治愈</span><span>{personality.gentle ?? 35}</span></div>
+                <div className="trait-track"><div className="trait-fill gentle" style={{ width: `${personality.gentle ?? 35}%` }} /></div>
+              </div>
+
+              <div className="trait-bar-row">
+                <div className="trait-label"><span>🧸 元气黏人</span><span>{personality.clingy ?? 25}</span></div>
+                <div className="trait-track"><div className="trait-fill clingy" style={{ width: `${personality.clingy ?? 25}%` }} /></div>
+              </div>
+
+              <div className="trait-bar-row">
+                <div className="trait-label"><span>💢 傲娇嘴硬</span><span>{personality.tsundere ?? 20}</span></div>
+                <div className="trait-track"><div className="trait-fill tsundere" style={{ width: `${personality.tsundere ?? 20}%` }} /></div>
+              </div>
+
+              <div className="trait-bar-row">
+                <div className="trait-label"><span>🔪 独占病娇</span><span>{personality.possessive ?? 5}</span></div>
+                <div className="trait-track"><div className="trait-fill possessive" style={{ width: `${personality.possessive ?? 5}%` }} /></div>
+              </div>
+
+              <div className="trait-bar-row">
+                <div className="trait-label"><span>🌧️ 敏感自卑</span><span>{personality.insecure ?? 10}</span></div>
+                <div className="trait-track"><div className="trait-fill insecure" style={{ width: `${personality.insecure ?? 10}%` }} /></div>
+              </div>
+            </div>
+
+            <div className="locked-hint" style={{ marginTop: "9px" }}>
+              💡 你的关怀、调侃、冷落或独占承诺，都会实时塑造她的真实性格与心境
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="side-block">
         <div className="side-title">记住关于我的事</div>

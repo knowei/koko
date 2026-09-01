@@ -7,7 +7,15 @@ import { apiUrl, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
 import { VoiceSettingsSection } from "@/components/settings/VoiceSettingsSection";
 import { useConfirmDialog } from "@/components/ConfirmDialog";
 
-export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void; onOpenAccount?: () => void }) {
+export function SettingsPanel({
+  onClose,
+  onOpenAccount,
+  onOpenLorebook,
+}: {
+  onClose: () => void;
+  onOpenAccount?: () => void;
+  onOpenLorebook?: () => void;
+}) {
   const confirmDialog = useConfirmDialog();
   const provider = useStore((s) => s.provider);
   const setProvider = useStore((s) => s.setProvider);
@@ -516,6 +524,41 @@ export function SettingsPanel({ onClose, onOpenAccount }: { onClose: () => void;
             </div>
             {saveNotice && <div className="fld-note save-notice">{saveNotice}</div>}
           </div>
+
+          {/* 8.5 专属世界书与深度设定 */}
+          {onOpenLorebook && (
+            <div className="settings-section-card">
+              <div className="settings-section-title">
+                <span className="title-icon">📖</span>
+                <span>专属世界书与深度记忆 (World Info)</span>
+              </div>
+              <p className="fld-note" style={{ margin: "0 0 10px" }}>
+                管理角色深度记忆、关键词智能触发、常驻设定及酒馆 (SillyTavern) 格式导入导出。
+              </p>
+              <button
+                className="mini-btn"
+                type="button"
+                style={{
+                  background: "linear-gradient(135deg, #ec4899, #f43f5e)",
+                  color: "#fff",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "10px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+                onClick={() => {
+                  onClose();
+                  onOpenLorebook();
+                }}
+              >
+                <span>📖</span> 打开世界书管理面板
+              </button>
+            </div>
+          )}
 
           {/* 9. 远程服务器地址 */}
           <div className="settings-section-card">

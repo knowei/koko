@@ -73,7 +73,7 @@ chmod +x scripts/deploy.sh
 ./scripts/deploy.sh
 ```
 
-`.env` 中必须更换 `POSTGRES_PASSWORD` 和 `AUTH_SECRET`。注册与找回密码均使用邮箱验证码，因此还需在 QQ 邮箱中开启 SMTP，并把单独生成的授权码填入 `SMTP_AUTH_CODE`；不要填写或提交 QQ 登录密码。默认发件账号为 `2994172661@qq.com`。默认公开端口为 `8080`，可通过 `APP_PORT` 修改。
+`.env` 中必须更换 `POSTGRES_PASSWORD` 和 `AUTH_SECRET`。注册与找回密码均使用邮箱验证码，因此还需在 QQ 邮箱中开启 SMTP，并把单独生成的授权码填入 `SMTP_AUTH_CODE`；不要填写或提交 QQ 登录密码。默认发件账号在 `SMTP_USER` 中配置。默认公开端口为 `8080`，可通过 `APP_PORT` 修改。
 
 以后更新不需要重新打包上传：
 

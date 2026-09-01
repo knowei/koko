@@ -40,6 +40,7 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
   const [currentExpr, setCurrentExpr] = useState<"smile" | "blush" | "shy" | "pout" | "sleepy" | "surprised">("smile");
   const [isScreenSharing, setIsScreenSharing] = useState(screenVision.isSharing());
   const [isAutoPatrol, setIsAutoPatrol] = useState(screenVision.autoPatrolActive);
+  const [isHorrorMode, setIsHorrorMode] = useState(() => localStorage.getItem("koko-horror-companion") === "true");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
@@ -64,27 +65,9 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
     }
   }, [messages]);
 
-  // Auto start lookScreen and auto-patrol in companion mode
+  // Screen observation is opt-in and never starts automatically.
   useEffect(() => {
-    const isDesktop = typeof window !== "undefined" && Boolean(window.electronAPI?.isElectron);
-    const initialTimer = window.setTimeout(() => {
-      void handleLookScreen(true);
-      if (isDesktop) {
-        setIsAutoPatrol(true);
-        const context = { profile, affinity, mood };
-        screenVision.startAutoPatrol(
-          20, // every 20 seconds
-          (res) => {
-            triggerBubbleSpeech(res.commentary, res.expression);
-          },
-          provider,
-          context,
-        );
-      }
-    }, 1800);
-
     return () => {
-      window.clearTimeout(initialTimer);
       screenVision.stopAutoPatrol();
     };
   }, []);
@@ -208,8 +191,12 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
 
     try {
       const context = { profile, affinity, mood };
-      const result: VisionCommentResult = await screenVision.requestComment(provider, context, "auto");
-      triggerBubbleSpeech(result.commentary, result.expression);
+      const result: VisionCommentResult | null = await screenVision.requestComment(
+        provider,
+        context,
+        isHorrorMode ? "horror" : "auto",
+      );
+      if (result) triggerBubbleSpeech(result.commentary, result.expression);
     } catch (e: any) {
       if (!silent) {
         triggerBubbleSpeech(`（揉揉眼睛）${e.message || "刚才画面没看清，再试一次吧~"}`, "surprised");
@@ -234,14 +221,23 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
       setIsAutoPatrol(true);
       const context = { profile, affinity, mood };
       screenVision.startAutoPatrol(
-        20, // every 20 seconds
+        10,
         (res) => {
           triggerBubbleSpeech(res.commentary, res.expression);
         },
         provider,
         context,
+        isHorrorMode ? "horror" : "auto",
+        isHorrorMode
+          ? () => triggerBubbleSpeech("呀——！刚才画面突然动了一下……哥、哥你也看见了吧？", "surprised")
+          : undefined,
       );
-      triggerBubbleSpeech("（开启专注陪伴）全天候屏幕陪伴中！每隔一会儿我就会主动看看战况为你加油~", "smile");
+      triggerBubbleSpeech(
+        isHorrorMode
+          ? "（悄悄挪近一点）恐怖陪伴开启了……我才没有害怕，只是陪你一起看。"
+          : "（开启专注陪伴）画面明显变化时，我会主动看看再和你说话~",
+        isHorrorMode ? "shy" : "smile",
+      );
     }
   };
 
@@ -494,11 +490,33 @@ export function DesktopPetWidget({ onClose, isPipWindow }: DesktopPetWidgetProps
           type="button"
           className={`pet-ctrl-btn cruise-btn ${isAutoPatrol ? "active" : ""}`}
           onClick={handleToggleAutoPatrol}
-          title={isAutoPatrol ? "自动巡航观察中（每隔20秒主动看屏幕）" : "点击开启自动巡航观察"}
+          title={isAutoPatrol ? "智能巡航中（画面变化时才调用视觉模型）" : "点击开启智能巡航观察"}
         >
           <span>⏱️</span>
           {isAutoPatrol && <span className="cruise-pulse-dot" />}
           <span className="btn-label">{isAutoPatrol ? "巡航中" : "巡航"}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`pet-ctrl-btn horror-btn ${isHorrorMode ? "active" : ""}`}
+          onClick={() => {
+            const next = !isHorrorMode;
+            setIsHorrorMode(next);
+            localStorage.setItem("koko-horror-companion", String(next));
+            if (isAutoPatrol) {
+              screenVision.stopAutoPatrol();
+              setIsAutoPatrol(false);
+            }
+            triggerBubbleSpeech(
+              next ? "（抱紧小枕头）恐怖陪伴准备好了……巡航要重新点一下才会开始哦。" : "恐怖陪伴关闭啦，普通陪伴模式更轻松一点~",
+              next ? "shy" : "smile",
+            );
+          }}
+          title={isHorrorMode ? "恐怖陪伴已开启" : "开启恐怖游戏氛围反应"}
+        >
+          <span>{isHorrorMode ? "😨" : "👻"}</span>
+          <span className="btn-label">恐怖</span>
         </button>
 
         <button

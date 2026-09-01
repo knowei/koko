@@ -8,6 +8,9 @@ import {
   type CompanionMemory, type CompanionProfile, type MemoryKind, type PersonalityTraits, type RandomEvent, type ReplyStyle, type WeatherInfo,
 } from "@/data/persona";
 import { GALLERY_ITEMS } from "@/data/gallery";
+import { DEFAULT_LOREBOOK_ENTRIES, type LoreEntry } from "@/data/lorebook";
+import { scanLorebook } from "@/lib/lorebookScanner";
+import { analyzePersonalityEvolution } from "@/lib/personalityEngine";
 
 import { apiUrl } from "@/lib/api";
 
@@ -43,10 +46,11 @@ async function accountRequest(path: string, init: RequestInit = {}) {
 }
 const hash = (text: string) => [...text].reduce((n, ch) => ((n * 31 + ch.charCodeAt(0)) >>> 0), 2166136261);
 const addTraits = (base: PersonalityTraits, changes?: Partial<PersonalityTraits>): PersonalityTraits => ({
-  gentle: clamp(base.gentle + (changes?.gentle ?? 0)),
-  clingy: clamp(base.clingy + (changes?.clingy ?? 0)),
-  tsundere: clamp(base.tsundere + (changes?.tsundere ?? 0)),
-  possessive: clamp(base.possessive + (changes?.possessive ?? 0)),
+  gentle: clamp((base.gentle ?? 35) + (changes?.gentle ?? 0)),
+  clingy: clamp((base.clingy ?? 25) + (changes?.clingy ?? 0)),
+  tsundere: clamp((base.tsundere ?? 20) + (changes?.tsundere ?? 0)),
+  possessive: clamp((base.possessive ?? 5) + (changes?.possessive ?? 0)),
+  insecure: clamp((base.insecure ?? 10) + (changes?.insecure ?? 0)),
 });
 
 export function preferredOuting(affinity: number, profileName: string) {
@@ -202,7 +206,9 @@ interface State {
   currentlySpeakingId: string | null;
   currentExpression: ExpressionType;
   expressionExpiry: number;
+  personalityToast: string | null;
 
+  setPersonalityToast: (toast: string | null) => void;
   setProvider: (cfg: ProviderCfg) => void;
   setReplyStyle: (style: ReplyStyle) => void;
   setProfile: (profile: CompanionProfile) => void;
@@ -250,6 +256,14 @@ interface State {
   customBgImage: string | null;
   unlockGalleryItem: (id: string) => void;
   setCustomBgImage: (url: string | null) => void;
+
+  lorebook: LoreEntry[];
+  addLoreEntry: (entry: Omit<LoreEntry, "id" | "createdAt" | "updatedAt">) => string;
+  updateLoreEntry: (id: string, patch: Partial<LoreEntry>) => void;
+  deleteLoreEntry: (id: string) => void;
+  toggleLoreEntry: (id: string) => void;
+  resetLorebook: () => void;
+  importLorebookEntries: (entries: LoreEntry[]) => number;
 
 
   updateMemory: (id: string, text: string, kind: MemoryKind) => void;
@@ -317,6 +331,8 @@ export const useStore = create<State>()(
       unlockedSkins: ["blue"],
       activeSkin: "blue",
       previewSkin: null,
+      personalityToast: null,
+      setPersonalityToast: (toast: string | null) => set({ personalityToast: toast }),
       todayGamesCount: 0,
       lastGameDate: null,
       stickyNotes: [
@@ -352,6 +368,49 @@ export const useStore = create<State>()(
       customBgImage: null,
       unlockGalleryItem: (id: string) => set((s) => ({ unlockedGallery: (s.unlockedGallery || []).includes(id) ? s.unlockedGallery : [...(s.unlockedGallery || []), id] })),
       setCustomBgImage: (customBgImage: string | null) => set({ customBgImage }),
+
+      lorebook: DEFAULT_LOREBOOK_ENTRIES,
+      addLoreEntry: (entry) => {
+        const id = "lore_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+        const newEntry: LoreEntry = {
+          ...entry,
+          id,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        set((s) => ({ lorebook: [newEntry, ...(s.lorebook || [])] }));
+        return id;
+      },
+      updateLoreEntry: (id, patch) => {
+        set((s) => ({
+          lorebook: (s.lorebook || []).map((item) => (item.id === id ? { ...item, ...patch, updatedAt: Date.now() } : item)),
+        }));
+      },
+      deleteLoreEntry: (id) => {
+        set((s) => ({
+          lorebook: (s.lorebook || []).filter((item) => item.id !== id),
+        }));
+      },
+      toggleLoreEntry: (id) => {
+        set((s) => ({
+          lorebook: (s.lorebook || []).map((item) => (item.id === id ? { ...item, enabled: !item.enabled, updatedAt: Date.now() } : item)),
+        }));
+      },
+      resetLorebook: () => {
+        set({ lorebook: DEFAULT_LOREBOOK_ENTRIES });
+      },
+      importLorebookEntries: (imported) => {
+        if (!Array.isArray(imported) || imported.length === 0) return 0;
+        let addedCount = 0;
+        set((s) => {
+          const existing = s.lorebook || [];
+          const existingTitles = new Set(existing.map((e) => e.title));
+          const newItems = imported.filter((item) => !existingTitles.has(item.title));
+          addedCount = newItems.length;
+          return { lorebook: [...newItems, ...existing] };
+        });
+        return addedCount;
+      },
 
       pendingEvent: null,
       pendingEventInstanceId: null,
@@ -1264,11 +1323,16 @@ export const useStore = create<State>()(
             ts: note.updatedAt,
             text: `用户交给你记住的备忘：${note.title}${note.content ? `；${note.content.slice(0, 80)}` : ""}${note.reminderDate ? `（提醒日期 ${note.reminderDate}）` : ""}`,
           }));
+
+        const scanContext = `${lastUserText}\n${recent.map((m) => m.content).join("\n")}`;
+        const { formattedPromptBlock: lorebookContext } = scanLorebook(state.lorebook || DEFAULT_LOREBOOK_ENTRIES, scanContext);
+
         await streamChat(
           { context: {
             affinity: state.affinity, mood: state.mood, earlierDigest: state.rollingSummary || earlierDigest(history),
             personality: state.personality, replyStyle: state.replyStyle, hour: new Date().getHours(),
             profile: state.profile, weather: state.weather, adultMode: state.adultMode, memories: [...relevantMemories, ...experienceMemories, ...diaryMemories, ...agreementMemories, ...reminderMemories],
+            lorebookContext,
           }, messages: apiMessages, provider: state.provider },
           {
             onDelta: (t) =>
@@ -1282,18 +1346,37 @@ export const useStore = create<State>()(
               const curState = get();
               const finalMsg = curState.messages.find((m) => m.id === assistantId);
               const rawContent = finalMsg?.content || "";
-              const { cleanedText, expression, moodDelta, affinityDelta } = extractTagsAndClean(rawContent);
+              const { cleanedText, expression, moodDelta: tagMoodDelta, affinityDelta: tagAffinityDelta, personalityDeltas } = extractTagsAndClean(rawContent);
               const detectedExpr = detectExpression(cleanedText, expression);
 
               if (detectedExpr && detectedExpr !== "normal") {
                 get().setExpression(detectedExpr, 8000);
               }
 
+              // Personality Evolution
+              const evolution = analyzePersonalityEvolution(
+                curState.personality,
+                lastUserText,
+                cleanedText,
+                personalityDeltas,
+                curState.affinity,
+                curState.mood,
+              );
+
+              if (evolution.feedbackToast) {
+                curState.setPersonalityToast(evolution.feedbackToast);
+              }
+
               set((s) => {
                 let affinity = reward ? clamp(s.affinity + reward.affinity) : s.affinity;
-                if (affinityDelta) affinity = clamp(affinity + affinityDelta);
+                if (tagAffinityDelta) affinity = clamp(affinity + tagAffinityDelta);
+                if (evolution.affinityDelta) affinity = clamp(affinity + evolution.affinityDelta);
+
                 let mood = reward ? clamp(s.mood + reward.mood) : s.mood;
-                if (moodDelta) mood = clamp(mood + moodDelta);
+                if (tagMoodDelta) mood = clamp(mood + tagMoodDelta);
+                if (evolution.moodDelta) mood = clamp(mood + evolution.moodDelta);
+
+                const personality = evolution.newTraits;
 
                 const unlocked = MILESTONES.filter((item) => affinity >= item.affinity && !s.unlockedMilestones.includes(item.id));
                 const today = todayStr();
@@ -1317,6 +1400,7 @@ export const useStore = create<State>()(
                   streaming: false,
                   affinity,
                   mood,
+                  personality,
                   unlockedMilestones: [...s.unlockedMilestones, ...unlocked.map((item) => item.id)],
                   messages: [...updatedMessages, ...unlocked.map((item) => ({
                     id: uid(), role: "assistant" as const, content: item.text, ts: Date.now(), kind: "milestone" as const,
@@ -1395,6 +1479,7 @@ export const useStore = create<State>()(
         lastAnalyzedMessageCount: s.lastAnalyzedMessageCount,
         lastDiaryAnalyzedCount: s.lastDiaryAnalyzedCount,
         lastDiaryAnalyzedDate: s.lastDiaryAnalyzedDate,
+        lorebook: s.lorebook,
       }),
     },
   ),

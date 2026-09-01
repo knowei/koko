@@ -9,6 +9,7 @@ interface ChatScreenProps {
   onOpenFocus?: () => void;
   onOpenLife?: () => void;
   onOpenSticky?: () => void;
+  onOpenLorebook?: () => void;
 }
 
 export function ChatScreen({
@@ -16,6 +17,7 @@ export function ChatScreen({
   onOpenFocus,
   onOpenLife,
   onOpenSticky,
+  onOpenLorebook,
 }: ChatScreenProps = {}) {
   const messages = useStore((s) => s.messages);
   const streaming = useStore((s) => s.streaming);
@@ -45,6 +47,17 @@ export function ChatScreen({
   const currentlySpeakingId = useStore((s) => s.currentlySpeakingId);
   const playMessageAudio = useStore((s) => s.playMessageAudio);
   const stopAudio = useStore((s) => s.stopAudio);
+  const personalityToast = useStore((s) => s.personalityToast);
+  const setPersonalityToast = useStore((s) => s.setPersonalityToast);
+
+  useEffect(() => {
+    if (personalityToast) {
+      const timer = setTimeout(() => {
+        setPersonalityToast(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [personalityToast, setPersonalityToast]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -158,6 +171,13 @@ export function ChatScreen({
 
   return (
     <section className="chat">
+      {personalityToast && (
+        <div className="personality-toast-banner" role="status">
+          <span>{personalityToast}</span>
+          <button onClick={() => setPersonalityToast(null)} title="关闭提示">✕</button>
+        </div>
+      )}
+
       <div className="msg-list">
         {messages.length === 0 && (
           <div className="hint-bubble">
@@ -320,6 +340,17 @@ export function ChatScreen({
                   }}
                 >
                   🎮 双人娱乐坊
+                </button>
+              )}
+              {onOpenLorebook && (
+                <button
+                  disabled={streaming}
+                  onClick={() => {
+                    setShowActions(false);
+                    onOpenLorebook();
+                  }}
+                >
+                  📖 专属世界书
                 </button>
               )}
               <button

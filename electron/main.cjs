@@ -2,6 +2,8 @@ const { app, BrowserWindow, screen, Tray, Menu, ipcMain, session, desktopCapture
 const path = require('node:path');
 const http = require('node:http');
 
+app.setName('妹妹陪伴');
+
 // Enable hardware transparent visuals on Windows
 app.commandLine.appendSwitch('enable-transparent-visuals');
 app.commandLine.appendSwitch('disable-gpu-vsync');
@@ -13,6 +15,7 @@ let currentMode = 'full'; // 'full' or 'mini'
 let isQuitting = false;
 
 const STICKY_EXPANDED = { width: 352, height: 440 };
+const MINI_WINDOW = { width: 300, height: 440, margin: 16 };
 
 function getFullWindowSize(display = screen.getPrimaryDisplay()) {
   const { width, height } = display.workAreaSize;
@@ -179,23 +182,38 @@ function setStickyVisible(visible) {
 function setWindowMode(mode) {
   if (!mainWindow) return;
   currentMode = mode;
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenW, height: screenH } = primaryDisplay.workAreaSize;
+  const activeDisplay = screen.getDisplayMatching(mainWindow.getBounds());
+  const { x, y, width, height } = activeDisplay.workArea;
 
   if (mode === 'mini') {
-    // Mini Floating Companion Mode (100% transparent at bottom-right)
+    // Release the full-window minimum before shrinking and keep the pet inside
+    // the current monitor's work area, including non-zero multi-monitor origins.
     mainWindow.setResizable(true);
-    mainWindow.setSize(300, 440, true);
-    mainWindow.setPosition(screenW - 320, screenH - 460, true);
+    mainWindow.setMinimumSize(280, 380);
+    mainWindow.setBounds({
+      x: x + width - MINI_WINDOW.width - MINI_WINDOW.margin,
+      y: y + height - MINI_WINDOW.height - MINI_WINDOW.margin,
+      width: MINI_WINDOW.width,
+      height: MINI_WINDOW.height,
+    });
     mainWindow.setAlwaysOnTop(true, 'screen-saver');
     mainWindow.setResizable(false);
+    mainWindow.showInactive();
+    mainWindow.moveTop();
   } else {
     // Full Companion Window Mode (centered desktop app)
-    const fullWindowSize = getFullWindowSize(primaryDisplay);
+    const fullWindowSize = getFullWindowSize(activeDisplay);
     mainWindow.setResizable(true);
-    mainWindow.setSize(fullWindowSize.width, fullWindowSize.height, true);
-    mainWindow.center();
+    mainWindow.setMinimumSize(900, 680);
+    mainWindow.setBounds({
+      x: x + Math.round((width - fullWindowSize.width) / 2),
+      y: y + Math.round((height - fullWindowSize.height) / 2),
+      width: fullWindowSize.width,
+      height: fullWindowSize.height,
+    });
     mainWindow.setAlwaysOnTop(false);
+    mainWindow.show();
+    mainWindow.focus();
   }
 
   mainWindow.webContents.send('window-mode-change', mode);

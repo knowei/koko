@@ -31,7 +31,7 @@ interface ChatBody {
   context?: {
     affinity?: number; mood?: number; earlierDigest?: string; personality?: PersonalityTraits;
     replyStyle?: ReplyStyle; hour?: number; profile?: CompanionProfile; weather?: WeatherInfo | null;
-    adultMode?: boolean; memories?: CompanionMemory[];
+    adultMode?: boolean; memories?: CompanionMemory[]; lorebookContext?: string;
   };
   messages: ChatMsg[];
   provider: ProviderCfg;
@@ -224,6 +224,7 @@ export function createAiRouter() {
       context.weather || null,
       context.adultMode === true,
       Array.isArray(context.memories) ? context.memories.slice(-50).map((item) => ({ ...item, text: String(item.text).slice(0, 100) })) : [],
+      String(context.lorebookContext || "").slice(0, 3000),
     );
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const provider = body.provider || { mode: "default" };
@@ -310,6 +311,9 @@ async function streamOpenAICompatible(
       body: JSON.stringify({
         model: provider.model,
         stream: true,
+        temperature: 0.8,
+        presence_penalty: 0.2,
+        frequency_penalty: 0.1,
         messages: [
           { role: "system", content: system },
           ...messages.map((m) => ({ role: m.role, content: m.content })),

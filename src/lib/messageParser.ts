@@ -1,3 +1,6 @@
+import type { PersonalityTraits } from "@/data/persona";
+import { stripReasoningContent } from "@/lib/reasoningFilter";
+
 export type ExpressionType =
   | "normal"
   | "smile"
@@ -29,19 +32,21 @@ export type MessageSegment =
   | { type: "dialogue"; content: string };
 
 /**
- * Extract system/expression tags from raw response and return clean text plus metadata
+ * Extract system/expression/personality tags from raw response and return clean text plus metadata
  */
 export function extractTagsAndClean(rawText: string): {
   cleanedText: string;
   expression?: ExpressionType;
   moodDelta?: number;
   affinityDelta?: number;
+  personalityDeltas?: Partial<PersonalityTraits>;
 } {
   if (!rawText) return { cleanedText: "" };
   let text = stripReasoningContent(rawText);
   let expression: ExpressionType | undefined;
   let moodDelta: number | undefined;
   let affinityDelta: number | undefined;
+  const personalityDeltas: Partial<PersonalityTraits> = {};
 
   // Extract <expression:...>
   const exprMatch = text.match(/<expression:([a-zA-Z0-9_-]+)>/i);
@@ -67,11 +72,23 @@ export function extractTagsAndClean(rawText: string): {
     text = text.replace(/<affinity:[+-]?\d+>/gi, "");
   }
 
+  // Extract <personality:gentle|clingy|tsundere|possessive|insecure:[+-]?\d+>
+  const persMatches = Array.from(text.matchAll(/<personality:([a-zA-Z]+):([+-]?\d+)>/gi));
+  for (const m of persMatches) {
+    const trait = m[1].toLowerCase() as keyof PersonalityTraits;
+    const delta = parseInt(m[2], 10);
+    if (["gentle", "clingy", "tsundere", "possessive", "insecure"].includes(trait)) {
+      personalityDeltas[trait] = (personalityDeltas[trait] || 0) + delta;
+    }
+  }
+  text = text.replace(/<personality:[a-zA-Z]+:[+-]?\d+>/gi, "");
+
   return {
     cleanedText: text.trim(),
     expression,
     moodDelta,
     affinityDelta,
+    personalityDeltas: Object.keys(personalityDeltas).length > 0 ? personalityDeltas : undefined,
   };
 }
 
@@ -118,68 +135,52 @@ export function detectExpression(
  */
 export function parseMessageSegments(rawText: string): MessageSegment[] {
   if (!rawText) return [];
-  const safeText = stripReasoningContent(rawText);
-  if (!safeText) return [];
+
+  const withoutReasoning = stripReasoningContent(rawText);
   const segments: MessageSegment[] = [];
 
-  // 1. Separate <think> tags if present
-  const thinkRegex = /<think>([\s\S]*?)(?:<\/think>|$)/gi;
+  // Match full-width parentheses （...）, half-width (...), brackets 【...】, and asterisks *...*
+  const pattern = /(（[^）]+）|\([^)]+\)|【[^】]+】|\*[^*]+\*)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
-  while ((match = thinkRegex.exec(safeText)) !== null) {
-    const preText = safeText.slice(lastIndex, match.index);
-    if (preText.trim()) {
-      parseActionsAndDialogue(preText, segments);
+  while ((match = pattern.exec(withoutReasoning)) !== null) {
+    if (match.index > lastIndex) {
+      const dialogueText = withoutReasoning.slice(lastIndex, match.index).trim();
+      if (dialogueText) {
+        segments.push({ type: "dialogue", content: dialogueText });
+      }
     }
-    const thinkContent = match[1].trim();
-    if (thinkContent) {
-      segments.push({ type: "think", content: thinkContent });
-    }
-    lastIndex = match.index + match[0].length;
-  }
 
-  const postText = safeText.slice(lastIndex);
-  if (postText.trim()) {
-    parseActionsAndDialogue(postText, segments);
-  }
-
-  return segments.length > 0 ? segments : [{ type: "dialogue", content: safeText }];
-}
-
-function parseActionsAndDialogue(text: string, output: MessageSegment[]) {
-  // Clean tag markers like <expression:...> first
-  const clean = text
-    .replace(/<expression:[^>]+>/gi, "")
-    .replace(/<mood:[^>]+>/gi, "")
-    .replace(/<affinity:[^>]+>/gi, "");
-
-  // Regex to match bracketed actions: （...）, (...), 【...】, *...*
-  const actionRegex = /(（[^）]+）|\([^)]+\)|【[^】]+】|\*[^*]+\*)/g;
-  let lastIdx = 0;
-  let m: RegExpExecArray | null;
-
-  while ((m = actionRegex.exec(clean)) !== null) {
-    const beforeDialogue = clean.slice(lastIdx, m.index).trim();
-    if (beforeDialogue) {
-      output.push({ type: "dialogue", content: beforeDialogue });
-    }
-    // Strip surrounding brackets for action content
-    const actionRaw = m[0];
-    const actionContent = actionRaw
-      .replace(/^[（(【*]+/, "")
-      .replace(/[）)】*]+$/, "")
+    const actionText = match[0]
+      .replace(/^[（(【*]+|[）)】*]+$/g, "")
       .trim();
-
-    if (actionContent) {
-      output.push({ type: "action", content: actionContent });
+    if (actionText) {
+      segments.push({ type: "action", content: actionText });
     }
-    lastIdx = m.index + m[0].length;
+
+    lastIndex = pattern.lastIndex;
   }
 
-  const afterDialogue = clean.slice(lastIdx).trim();
-  if (afterDialogue) {
-    output.push({ type: "dialogue", content: afterDialogue });
+  if (lastIndex < withoutReasoning.length) {
+    const trailing = withoutReasoning.slice(lastIndex).trim();
+    if (trailing) {
+      segments.push({ type: "dialogue", content: trailing });
+    }
   }
+
+  return segments.length > 0 ? segments : [{ type: "dialogue", content: withoutReasoning }];
 }
-import { stripReasoningContent } from "@/lib/reasoningFilter";
+
+/**
+ * Extract clean spoken text suitable for TTS (excluding stage directions/actions)
+ */
+export function extractCleanSpokenText(rawText: string): string {
+  const segments = parseMessageSegments(rawText);
+  return segments
+    .filter((s) => s.type === "dialogue")
+    .map((s) => s.content)
+    .join(" ")
+    .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。！？、~～…\s]/g, "")
+    .trim();
+}

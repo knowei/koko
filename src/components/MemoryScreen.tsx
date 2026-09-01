@@ -13,7 +13,7 @@ const kindConfig: Record<MemoryKind, { label: string; icon: string; color: strin
   important: { label: "重要约定与事项", icon: "📌", color: "#10b981" },
 };
 
-export function MemoryScreen() {
+export function MemoryScreen({ onOpenLorebook }: { onOpenLorebook?: () => void } = {}) {
   const memories = useStore((state) => state.memories);
   const messages = useStore((state) => state.messages);
   const diaries = useStore((state) => state.diaries);
@@ -126,6 +126,20 @@ export function MemoryScreen() {
         >
           📸 珍藏相册与CG ({unlockedCount}/{GALLERY_ITEMS.length})
         </button>
+        {onOpenLorebook && (
+          <button
+            className="memory-tab-btn"
+            style={{
+              background: "linear-gradient(135deg, #fff0f5, #ffe4e9)",
+              border: "1px solid #f9c2d1",
+              color: "#d81b60",
+              fontWeight: "700",
+            }}
+            onClick={onOpenLorebook}
+          >
+            📖 专属世界书 ✨
+          </button>
+        )}
       </div>
 
       {tab === "profile" ? (

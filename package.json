@@ -1,7 +1,7 @@
 {
   "name": "ai-companion",
   "private": true,
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "妹妹 AI 伴侣与桌面陪伴",
   "author": "妹妹",
   "type": "module",
@@ -20,6 +20,7 @@
     "desktop": "electron electron/main.cjs",
     "dev:desktop": "concurrently -n web,api,pet -c cyan,magenta,yellow \"vite\" \"tsx watch server/index.ts\" \"electron electron/main.cjs\"",
     "build:installer": "npm run build && electron-builder --win nsis --publish never",
+    "build:desktop-folder": "npm run build && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-desktop-folder.ps1",
     "mobile:sync": "npm run build && cap sync android",
     "build:apk": "npm run mobile:sync && cd android && gradlew.bat assembleRelease",
     "build:apk:debug": "npm run mobile:sync && cd android && gradlew.bat assembleDebug",
