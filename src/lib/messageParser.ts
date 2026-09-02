@@ -28,6 +28,8 @@ export const EXPRESSION_MAP: Record<ExpressionType, ExpressionInfo> = {
 
 export type MessageSegment =
   | { type: "think"; content: string }
+  | { type: "scene"; content: string }
+  | { type: "thought"; content: string }
   | { type: "action"; content: string }
   | { type: "dialogue"; content: string };
 
@@ -138,6 +140,27 @@ export function parseMessageSegments(rawText: string): MessageSegment[] {
 
   const withoutReasoning = stripReasoningContent(rawText);
   const segments: MessageSegment[] = [];
+
+  const structuredPattern = /<(scene|action|dialogue|thought)>([\s\S]*?)(?:<\/\1>|$)/gi;
+  let structuredMatch: RegExpExecArray | null;
+  let structuredLastIndex = 0;
+  let hasStructuredSegments = false;
+
+  while ((structuredMatch = structuredPattern.exec(withoutReasoning)) !== null) {
+    hasStructuredSegments = true;
+    const prefix = withoutReasoning.slice(structuredLastIndex, structuredMatch.index).trim();
+    if (prefix) segments.push({ type: "dialogue", content: prefix });
+    const type = structuredMatch[1].toLowerCase() as "scene" | "action" | "dialogue" | "thought";
+    const content = structuredMatch[2].replace(/<[^>]+>/g, "").trim();
+    if (content) segments.push({ type, content });
+    structuredLastIndex = structuredPattern.lastIndex;
+  }
+
+  if (hasStructuredSegments) {
+    const trailing = withoutReasoning.slice(structuredLastIndex).trim();
+    if (trailing) segments.push({ type: "dialogue", content: trailing });
+    return segments;
+  }
 
   // Match full-width parentheses （...）, half-width (...), brackets 【...】, and asterisks *...*
   const pattern = /(（[^）]+）|\([^)]+\)|【[^】]+】|\*[^*]+\*)/g;

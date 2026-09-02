@@ -13,6 +13,7 @@ import {
 } from "../../src/data/persona.js";
 import { StreamingReasoningFilter } from "../../src/lib/reasoningFilter.js";
 import type { TopicFlow } from "../../src/lib/topicFlow.js";
+import type { VisualNovelScene } from "../../src/lib/visualNovelScene.js";
 import { fetchErrorMessage, normalizeBaseURL } from "../provider.js";
 
 const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "claude-opus-4-7";
@@ -35,6 +36,7 @@ interface ChatBody {
     adultMode?: boolean; memories?: CompanionMemory[]; lorebookContext?: string;
     interactionMode?: "user_led" | "proactive";
     topicFlow?: TopicFlow;
+    visualNovelScene?: VisualNovelScene | null;
   };
   messages: ChatMsg[];
   provider: ProviderCfg;
@@ -232,6 +234,9 @@ export function createAiRouter() {
       ["new", "continue", "switch", "proactive"].includes(String(context.topicFlow))
         ? context.topicFlow as TopicFlow
         : "new",
+      typeof context.visualNovelScene?.summary === "string"
+        ? context.visualNovelScene.summary.slice(0, 180)
+        : "",
     );
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const provider = body.provider || { mode: "default" };

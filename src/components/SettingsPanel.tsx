@@ -308,6 +308,7 @@ export function SettingsPanel({
                 ["daily", "日常陪伴", "短对话为主，偶尔带亲昵动作"],
                 ["immersive", "沉浸互动", "台词、细腻动作与心绪描写均衡"],
                 ["story", "剧情小说", "更完整的轻小说式沉浸场景"],
+                ["visual_novel", "视觉小说", "场景、动作、心声和台词分镜呈现"],
               ] as const).map(([value, label, desc]) => (
                 <button key={value} type="button" className={`style-option ${style === value ? "sel" : ""}`} onClick={() => setStyle(value)}>
                   <strong>{label}</strong>

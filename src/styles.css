@@ -7573,7 +7573,7 @@ button:active,
 /* Reply Style Options */
 .style-options {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 .style-option {
@@ -7603,6 +7603,35 @@ button:active,
 }
 .style-option.sel strong {
   color: #e11d48;
+}
+
+.bubble-scene-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 3px 0 9px;
+  padding: 8px 11px;
+  border-left: 3px solid #dba5b5;
+  border-radius: 4px 10px 10px 4px;
+  background: linear-gradient(90deg, rgba(249, 226, 233, 0.7), rgba(255, 250, 248, 0.35));
+  color: #8a6872;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.bubble-inner-thought {
+  margin: 5px 9px 8px;
+  color: #a06f80;
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.bubble-inner-thought::before {
+  content: "心声 · ";
+  color: #d6839d;
+  font-style: normal;
+  font-weight: 700;
 }
 
 /* Provider Radio Cards Group */
@@ -8241,4 +8270,3 @@ button:active,
     transform: translate(-50%, 0) scale(1);
   }
 }
-

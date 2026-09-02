@@ -12,6 +12,7 @@ import { DEFAULT_LOREBOOK_ENTRIES, type LoreEntry } from "@/data/lorebook";
 import { scanLorebook } from "@/lib/lorebookScanner";
 import { detectTopicFlow } from "@/lib/topicFlow";
 import { analyzePersonalityEvolution } from "@/lib/personalityEngine";
+import { extractVisualNovelScene, type VisualNovelScene } from "@/lib/visualNovelScene";
 
 import { apiUrl } from "@/lib/api";
 
@@ -196,6 +197,7 @@ interface State {
   agreements: Agreement[];
   experiences: Experience[];
   rollingSummary: string;
+  visualNovelScene: VisualNovelScene | null;
   lastAnalyzedMessageCount: number;
   analyzingMemory: boolean;
   analyzingDiary: boolean;
@@ -434,6 +436,7 @@ export const useStore = create<State>()(
       agreements: [],
       experiences: [],
       rollingSummary: "",
+      visualNovelScene: null,
       lastAnalyzedMessageCount: 0,
       analyzingMemory: false,
       analyzingDiary: false,
@@ -928,6 +931,7 @@ export const useStore = create<State>()(
           healthTracker: save.healthTracker,
           alarms: save.alarms, unlockedGallery: save.unlockedGallery, customBgImage: save.customBgImage,
           rollingSummary: save.rollingSummary,
+          visualNovelScene: save.visualNovelScene,
           lastAnalyzedMessageCount: save.lastAnalyzedMessageCount,
           lastDiaryAnalyzedCount: save.lastDiaryAnalyzedCount,
           lastDiaryAnalyzedDate: save.lastDiaryAnalyzedDate,
@@ -968,6 +972,9 @@ export const useStore = create<State>()(
           healthTracker: incoming.healthTracker ?? current.healthTracker,
           alarms: Array.isArray(incoming.alarms) ? incoming.alarms : current.alarms, unlockedGallery: Array.isArray(incoming.unlockedGallery) ? incoming.unlockedGallery : current.unlockedGallery, customBgImage: typeof incoming.customBgImage === "string" ? incoming.customBgImage : (incoming.customBgImage === null ? null : current.customBgImage),
           rollingSummary: typeof incoming.rollingSummary === "string" ? incoming.rollingSummary.slice(0, 900) : "",
+          visualNovelScene: typeof incoming.visualNovelScene?.summary === "string"
+            ? { summary: incoming.visualNovelScene.summary.slice(0, 180), updatedAt: Number(incoming.visualNovelScene.updatedAt) || Date.now() }
+            : null,
           lastAnalyzedMessageCount: typeof incoming.lastAnalyzedMessageCount === "number" ? Math.max(0, incoming.lastAnalyzedMessageCount) : 0,
           analyzingMemory: false,
           analyzingDiary: false,
@@ -1263,7 +1270,7 @@ export const useStore = create<State>()(
           messages: [], affinity: 5, mood: 60, personality: DEFAULT_PERSONALITY,
           lastCheckIn: null, lastGiftDate: null, giftsToday: 0, lastOutingDate: null,
           pendingEvent: null, pendingEventInstanceId: null, eventDate: null, eventsToday: 0, eventAttemptsToday: 0, firstChatDate: null,
-          adultMode: false, memories: [], unlockedMilestones: [], diaries: [], agreements: [], experiences: [], rollingSummary: "", lastAnalyzedMessageCount: 0, analyzingMemory: false, analyzingDiary: false, lastDiaryAnalyzedCount: 0, lastDiaryAnalyzedDate: null, lastProactiveAt: null,
+          adultMode: false, memories: [], unlockedMilestones: [], diaries: [], agreements: [], experiences: [], rollingSummary: "", visualNovelScene: null, lastAnalyzedMessageCount: 0, analyzingMemory: false, analyzingDiary: false, lastDiaryAnalyzedCount: 0, lastDiaryAnalyzedDate: null, lastProactiveAt: null,
         }),
 
       send: async (text) => {
@@ -1352,7 +1359,7 @@ export const useStore = create<State>()(
             affinity: state.affinity, mood: state.mood, earlierDigest: state.rollingSummary || earlierDigest(history),
             personality: state.personality, replyStyle: state.replyStyle, hour: new Date().getHours(),
             profile: state.profile, weather: state.weather, adultMode: state.adultMode, memories: [...relevantMemories, ...experienceMemories, ...diaryMemories, ...agreementMemories, ...reminderMemories],
-            lorebookContext, interactionMode, topicFlow,
+            lorebookContext, interactionMode, topicFlow, visualNovelScene: state.replyStyle === "visual_novel" ? state.visualNovelScene : null,
           }, messages: apiMessages, provider: state.provider },
           {
             onDelta: (t) =>
@@ -1367,6 +1374,7 @@ export const useStore = create<State>()(
               const finalMsg = curState.messages.find((m) => m.id === assistantId);
               const rawContent = finalMsg?.content || "";
               const { cleanedText, expression, moodDelta: tagMoodDelta, affinityDelta: tagAffinityDelta, personalityDeltas } = extractTagsAndClean(rawContent);
+              const nextSceneSummary = curState.replyStyle === "visual_novel" ? extractVisualNovelScene(cleanedText) : null;
               const detectedExpr = detectExpression(cleanedText, expression);
 
               if (detectedExpr && detectedExpr !== "normal") {
@@ -1421,6 +1429,9 @@ export const useStore = create<State>()(
                   affinity,
                   mood,
                   personality,
+                  visualNovelScene: nextSceneSummary
+                    ? { summary: nextSceneSummary, updatedAt: Date.now() }
+                    : s.visualNovelScene,
                   unlockedMilestones: [...s.unlockedMilestones, ...unlocked.map((item) => item.id)],
                   messages: [...updatedMessages, ...unlocked.map((item) => ({
                     id: uid(), role: "assistant" as const, content: item.text, ts: Date.now(), kind: "milestone" as const,
@@ -1496,6 +1507,7 @@ export const useStore = create<State>()(
         agreements: s.agreements,
         experiences: s.experiences,
         rollingSummary: s.rollingSummary,
+        visualNovelScene: s.visualNovelScene,
         lastAnalyzedMessageCount: s.lastAnalyzedMessageCount,
         lastDiaryAnalyzedCount: s.lastDiaryAnalyzedCount,
         lastDiaryAnalyzedDate: s.lastDiaryAnalyzedDate,

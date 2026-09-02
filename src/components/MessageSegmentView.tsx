@@ -58,6 +58,23 @@ export function MessageSegmentView({
           );
         }
 
+        if (seg.type === "scene") {
+          return (
+            <div key={`scene-${idx}`} className="bubble-scene-text">
+              <span aria-hidden="true">▰</span>
+              <span>{seg.content}</span>
+            </div>
+          );
+        }
+
+        if (seg.type === "thought") {
+          return (
+            <div key={`thought-${idx}`} className="bubble-inner-thought">
+              {seg.content}
+            </div>
+          );
+        }
+
         return (
           <div key={`dia-${idx}`} className="bubble-dialogue-text">
             {seg.content}

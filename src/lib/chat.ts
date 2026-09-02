@@ -20,13 +20,14 @@ export interface ProviderCfg {
 
 import type { MemoryKind } from "@/data/persona";
 import type { TopicFlow } from "@/lib/topicFlow";
+import type { VisualNovelScene } from "@/lib/visualNovelScene";
 
 export interface ChatContext {
   affinity: number;
   mood: number;
   earlierDigest: string;
   personality: { gentle: number; clingy: number; tsundere: number; possessive: number };
-  replyStyle: "daily" | "immersive" | "story";
+  replyStyle: "daily" | "immersive" | "story" | "visual_novel";
   hour: number;
   profile: { name: string; age: number; birthday: string; userNickname: string; city: string };
   weather: { location: string; temperature: number; apparentTemperature: number; weatherCode: number; label: string; isDay: boolean; updatedAt: number } | null;
@@ -35,6 +36,7 @@ export interface ChatContext {
   lorebookContext?: string;
   interactionMode?: "user_led" | "proactive";
   topicFlow?: TopicFlow;
+  visualNovelScene?: VisualNovelScene | null;
 }
 
 export interface MemoryAnalysisResult {
