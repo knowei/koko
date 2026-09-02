@@ -5,12 +5,55 @@ import {
   clampTrait,
 } from "../src/lib/personalityEngine.js";
 import {
+  buildSystemPrompt,
   DEFAULT_PERSONALITY,
+  DEFAULT_PROFILE,
   getPersonalityArchetype,
   personalityLabel,
   type PersonalityTraits,
 } from "../src/data/persona.js";
 import { extractTagsAndClean } from "../src/lib/messageParser.js";
+
+test("user-led prompt follows an explicit topic change without background interruptions", () => {
+  const prompt = buildSystemPrompt(
+    30,
+    60,
+    "昨天聊过工作压力。",
+    DEFAULT_PERSONALITY,
+    "daily",
+    12,
+    DEFAULT_PROFILE,
+    null,
+    false,
+    [],
+    "",
+    "user_led",
+  );
+
+  assert.match(prompt, /本轮由用户主导/);
+  assert.match(prompt, /用户明确引导到新话题时立即跟随/);
+  assert.match(prompt, /不要突然询问午饭/);
+});
+
+test("proactive prompt stays within its triggering event", () => {
+  const prompt = buildSystemPrompt(
+    30,
+    60,
+    "",
+    DEFAULT_PERSONALITY,
+    "daily",
+    20,
+    DEFAULT_PROFILE,
+    null,
+    false,
+    [],
+    "",
+    "proactive",
+  );
+
+  assert.match(prompt, /本轮是系统允许的主动消息/);
+  assert.match(prompt, /不要同时引入第二个话题/);
+});
 
 test("clampTrait constrains values to 0-100", () => {
   assert.equal(clampTrait(-10), 0);

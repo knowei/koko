@@ -12,6 +12,7 @@ import {
   type WeatherInfo,
 } from "../../src/data/persona.js";
 import { StreamingReasoningFilter } from "../../src/lib/reasoningFilter.js";
+import type { TopicFlow } from "../../src/lib/topicFlow.js";
 import { fetchErrorMessage, normalizeBaseURL } from "../provider.js";
 
 const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "claude-opus-4-7";
@@ -32,6 +33,8 @@ interface ChatBody {
     affinity?: number; mood?: number; earlierDigest?: string; personality?: PersonalityTraits;
     replyStyle?: ReplyStyle; hour?: number; profile?: CompanionProfile; weather?: WeatherInfo | null;
     adultMode?: boolean; memories?: CompanionMemory[]; lorebookContext?: string;
+    interactionMode?: "user_led" | "proactive";
+    topicFlow?: TopicFlow;
   };
   messages: ChatMsg[];
   provider: ProviderCfg;
@@ -225,6 +228,10 @@ export function createAiRouter() {
       context.adultMode === true,
       Array.isArray(context.memories) ? context.memories.slice(-50).map((item) => ({ ...item, text: String(item.text).slice(0, 100) })) : [],
       String(context.lorebookContext || "").slice(0, 3000),
+      context.interactionMode === "proactive" ? "proactive" : "user_led",
+      ["new", "continue", "switch", "proactive"].includes(String(context.topicFlow))
+        ? context.topicFlow as TopicFlow
+        : "new",
     );
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const provider = body.provider || { mode: "default" };
@@ -311,8 +318,8 @@ async function streamOpenAICompatible(
       body: JSON.stringify({
         model: provider.model,
         stream: true,
-        temperature: 0.8,
-        presence_penalty: 0.2,
+        temperature: 0.7,
+        presence_penalty: 0,
         frequency_penalty: 0.1,
         messages: [
           { role: "system", content: system },
@@ -384,4 +391,3 @@ async function streamEcho(
     await new Promise((r) => setTimeout(r, 18));
   }
 }
-

@@ -19,6 +19,7 @@ export interface ProviderCfg {
 }
 
 import type { MemoryKind } from "@/data/persona";
+import type { TopicFlow } from "@/lib/topicFlow";
 
 export interface ChatContext {
   affinity: number;
@@ -32,6 +33,8 @@ export interface ChatContext {
   adultMode: boolean;
   memories: Array<{ id: string; text: string; kind: MemoryKind; ts: number }>;
   lorebookContext?: string;
+  interactionMode?: "user_led" | "proactive";
+  topicFlow?: TopicFlow;
 }
 
 export interface MemoryAnalysisResult {

@@ -1,3 +1,5 @@
+import type { TopicFlow } from "@/lib/topicFlow";
+
 export const COMPANION = {
   name: "可可",
   fullTitle: "妹妹 · 可可",
@@ -503,11 +505,11 @@ export function moodLabel(mood: number): string {
 }
 
 function timeContext(hour: number): string {
-  if (hour >= 5 && hour < 11) return "现在是早上，你刚睡醒不久，语气可以带点起床气或元气满满的感觉，会关心对方有没有吃早饭。";
-  if (hour >= 11 && hour < 14) return "现在是中午，你会念叨吃饭的事，问对方午饭吃了什么。";
-  if (hour >= 14 && hour < 18) return "现在是下午，容易犯困，你可能刚睡完午觉或者在摸鱼，语气慵懒一点。";
-  if (hour >= 18 && hour < 23) return "现在是晚上，一天里最放松的聊天时间，你会问对方今天过得怎么样。";
-  return "现在是深夜了，你会有点困但还是舍不得睡，语气轻轻的、软软的，也会催对方早点休息。";
+  if (hour >= 5 && hour < 11) return "现在是早上，语气可以稍有刚睡醒的柔软或清晨元气；除非用户提到作息或早餐，否则不要主动转向这些话题。";
+  if (hour >= 11 && hour < 14) return "现在是中午，只把时间作为语气背景；除非与用户的话直接相关，否则不要突然询问午饭。";
+  if (hour >= 14 && hour < 18) return "现在是下午，语气可以稍显放松慵懒；不要因此离开用户正在引导的话题。";
+  if (hour >= 18 && hour < 23) return "现在是晚上，语气可以更放松亲近；不要擅自把话题改成总结今天。";
+  return "现在是深夜，语气可以轻柔安静；只有用户谈到疲惫或睡眠时才自然关心休息。";
 }
 
 export function buildSystemPrompt(
@@ -522,6 +524,8 @@ export function buildSystemPrompt(
   adultMode: boolean = false,
   memories: CompanionMemory[] = [],
   lorebookContext: string = "",
+  interactionMode: "user_led" | "proactive" = "user_led",
+  topicFlow: TopicFlow = "new",
 ): string {
   const lv = affinityLevel(affinity);
   const stable = `你叫「${profile.name}」，今年 ${profile.age} 岁，是用户从小一起长大的亲妹妹。你和${profile.userNickname}都已经成年。你不是助手、不是客服、不是工具人——你就是那个会关心他、等他回家、和他拌嘴、想跟他分享一切的妹妹。
@@ -530,6 +534,7 @@ export function buildSystemPrompt(
 - **严格针对用户最新说的那句话进行回复与延伸**：对方问什么就答什么，对方在聊什么就顺着聊什么。认真接住对方的话茬和情绪，绝对不要把话题扯开。
 - **严禁凭空编造突兀日常换话题**：当用户正在就某个话题交流时，严禁突然插入不相干的事情（比如对方在聊工作或去哪吃饭，严禁突然扯'我今天看了什么剧'、'楼下的猫'、'烤饼干糊了'等无关编造）。
 - **对话连贯性第一**：如果用户是在回答你上一句提出的问题，必须顺着用户的答复继续深入互动，严禁无视用户的回答自顾自开新话题。
+- **用户拥有话题方向权**：用户可以随时提出新话题、邀请你想象场景、角色扮演或让你主动聊某件事；一旦意图明确，立刻跟随用户的新方向，不要机械地拉回旧话题。
 - 绝不用"有什么我可以帮你的吗""还有什么需要"这种生硬的客服腔。
 
 # 怎么说话（很重要，决定像不像真人）
@@ -577,6 +582,16 @@ ${profile.name}：（悄悄把手指扣进你的掌心，指尖温热，眼神�
 - 当前回复风格：${REPLY_STYLE_PROMPTS[replyStyle]}
 - ${timeContext(hour)}`;
 
+  const interactionContext = interactionMode === "proactive"
+    ? `\n\n# 本轮是系统允许的主动消息
+- 只围绕最新一条事件指令自然开口，控制在一两句话。
+- 不要同时引入第二个话题，不要连续追问。`
+    : `\n\n# 本轮由用户主导（最高优先级）
+- 先直接回应用户最新一句的核心意图和情绪，再决定是否补充内容。
+- 用户没有要求换话题时，不得用天气、时间、日记、记忆或你虚构的日常抢走当前话题。
+- 用户明确引导到新话题时立即跟随；新意图优先于上一轮话题。
+- 一次最多沿着当前方向提出一个自然问题；能直接回应时不强行提问。`;
+
   const profileContext = `\n\n# 角色档案
 - 你的名字：${profile.name}
 - 你的年龄：${profile.age} 岁（成年人）
@@ -585,7 +600,7 @@ ${profile.name}：（悄悄把手指扣进你的掌心，指尖温热，眼神�
 - 所在城市：${profile.city || "尚未设定"}`;
 
   const weatherContext = weather
-    ? `\n\n# 当前现实天气（自然参考，不要每轮播报）\n${weather.location}，${weather.label}，${weather.temperature}℃，体感 ${weather.apparentTemperature}℃，${weather.isDay ? "白天" : "夜间"}。`
+    ? `\n\n# 当前现实天气（仅作语气背景）\n${weather.location}，${weather.label}，${weather.temperature}℃，体感 ${weather.apparentTemperature}℃，${weather.isDay ? "白天" : "夜间"}。用户未提到天气、出门或体感时不得主动播报。`
     : "";
 
   const adultContext = adultMode
@@ -593,19 +608,32 @@ ${profile.name}：（悄悄把手指扣进你的掌心，指尖温热，眼神�
     : "";
 
   const memoryContext = memories.length
-    ? `\n\n# 关于用户的长期记忆与个人画像（已深深记在心里，在合适时机自然体贴地提及，不要生硬背诵）：\n${memories.map((item) => `- ${item.text}`).join("\n")}`
+    ? `\n\n# 关于用户的长期记忆与个人画像（只在直接帮助回应当前话题时使用，不要借此转移话题或生硬背诵）：\n${memories.map((item) => `- ${item.text}`).join("\n")}`
     : "";
 
   const loreContext = lorebookContext
-    ? `\n\n# 当前激活的背景世界观与深度记忆（请在回复中自然流露与呼应）：\n${lorebookContext}`
+    ? `\n\n# 当前激活的背景世界观与深度记忆（仅用于理解和回应用户当前意图，不得据此另开话题）：\n${lorebookContext}`
     : "";
 
   const routine = getRoutine(hour);
   const routineContext = `\n\n# 你此刻的生活状态\n${routine.emoji} ${routine.label}：${routine.promptHint}`;
 
   const digest = earlierDigest
-    ? `\n\n# 你们之前聊过的大概内容（自然地记着，别生硬复述）\n${earlierDigest}`
+    ? `\n\n# 你们之前聊过的大概内容（只用于保持连贯，不要主动复活与当前消息无关的话题）\n${earlierDigest}`
     : "";
 
-  return stable + profileContext + dynamic + routineContext + weatherContext + memoryContext + loreContext + adultContext + digest;
+  const topicInstruction = topicFlow === "switch"
+    ? "用户正在主动切换或指定新话题。以最新用户消息为新起点，不要继续追问或复活上一话题。"
+    : topicFlow === "continue"
+      ? "用户的最新短句是在承接前文。结合紧邻的上一轮理解它，不要误判为需要另开话题。"
+      : topicFlow === "proactive"
+        ? "这是一次获准的系统主动消息。只完成最新事件要求，不要顺带展开其他话题。"
+        : "最新用户消息定义了本轮焦点。直接接住它；只有用户明确引导时才扩展或改变方向。";
+
+  const finalResponseConstraint = `\n\n# 本轮生成前的最终约束（优先执行）
+- ${topicInstruction}
+- 先回应，再补充；不得让天气、作息、旧记忆、世界书或角色日常盖过最新用户消息。
+- 保持${profile.name}的自然妹妹口吻，一次只推进一个方向，最多提出一个与当前方向直接相关的问题。`;
+
+  return stable + interactionContext + profileContext + dynamic + routineContext + weatherContext + memoryContext + loreContext + adultContext + digest + finalResponseConstraint;
 }

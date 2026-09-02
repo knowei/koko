@@ -10,6 +10,7 @@ import {
 import { GALLERY_ITEMS } from "@/data/gallery";
 import { DEFAULT_LOREBOOK_ENTRIES, type LoreEntry } from "@/data/lorebook";
 import { scanLorebook } from "@/lib/lorebookScanner";
+import { detectTopicFlow } from "@/lib/topicFlow";
 import { analyzePersonalityEvolution } from "@/lib/personalityEngine";
 
 import { apiUrl } from "@/lib/api";
@@ -1304,7 +1305,12 @@ export const useStore = create<State>()(
         const history = state.messages.filter((m) => m.id !== assistantId && (m.content.trim() !== "" || Boolean(m.hiddenPrompt)));
         const recent = history.slice(-KEEP_RECENT);
         const apiMessages: ChatMsg[] = recent.map((m) => ({ role: m.role, content: m.hiddenPrompt ?? m.content }));
+        const latestInput = [...history].reverse().find((message) => message.role === "user");
         const lastUserText = [...history].reverse().find((message) => message.role === "user")?.content ?? "";
+        const interactionMode = latestInput?.kind === "hidden" ? "proactive" : "user_led";
+        const visibleUserMessages = history.filter((message) => message.role === "user" && message.content.trim());
+        const previousUserText = visibleUserMessages.at(-2)?.content ?? "";
+        const topicFlow = detectTopicFlow(lastUserText, previousUserText, interactionMode === "proactive");
         
         // Strict memory relevance filtering to prevent hallucinations & derailing
         const relevantMemories = [...state.memories]
@@ -1346,7 +1352,7 @@ export const useStore = create<State>()(
             affinity: state.affinity, mood: state.mood, earlierDigest: state.rollingSummary || earlierDigest(history),
             personality: state.personality, replyStyle: state.replyStyle, hour: new Date().getHours(),
             profile: state.profile, weather: state.weather, adultMode: state.adultMode, memories: [...relevantMemories, ...experienceMemories, ...diaryMemories, ...agreementMemories, ...reminderMemories],
-            lorebookContext,
+            lorebookContext, interactionMode, topicFlow,
           }, messages: apiMessages, provider: state.provider },
           {
             onDelta: (t) =>
