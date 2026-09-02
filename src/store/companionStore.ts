@@ -207,8 +207,10 @@ interface State {
   currentExpression: ExpressionType;
   expressionExpiry: number;
   personalityToast: string | null;
+  proactiveChatEnabled: boolean;
 
   setPersonalityToast: (toast: string | null) => void;
+  setProactiveChatEnabled: (enabled: boolean) => void;
   setProvider: (cfg: ProviderCfg) => void;
   setReplyStyle: (style: ReplyStyle) => void;
   setProfile: (profile: CompanionProfile) => void;
@@ -333,6 +335,8 @@ export const useStore = create<State>()(
       previewSkin: null,
       personalityToast: null,
       setPersonalityToast: (toast: string | null) => set({ personalityToast: toast }),
+      proactiveChatEnabled: false,
+      setProactiveChatEnabled: (enabled: boolean) => set({ proactiveChatEnabled: enabled }),
       todayGamesCount: 0,
       lastGameDate: null,
       stickyNotes: [
@@ -762,7 +766,10 @@ export const useStore = create<State>()(
       })),
       checkAgreementReminders: () => {
         const state = get();
-        if (state.streaming) return;
+        if (!state.proactiveChatEnabled || state.streaming) return;
+        const now = Date.now();
+        const lastUserMsg = [...state.messages].reverse().find((m) => m.role === "user");
+        if (lastUserMsg && now - lastUserMsg.ts < 10 * 60_000) return;
         const today = todayStr();
         const due = state.agreements
           .filter((agreement) => agreement.status === "pending" && agreement.dueDate && agreement.dueDate <= today && agreement.lastRemindedDate !== today)
@@ -872,25 +879,29 @@ export const useStore = create<State>()(
       markActive: () => set({ lastActiveAt: Date.now() }),
       greetOnReturn: () => {
         const state = get();
+        if (!state.proactiveChatEnabled) return;
         const now = Date.now();
         const gap = state.lastActiveAt ? now - state.lastActiveAt : 0;
         set({ lastActiveAt: now });
-        if (!state.lastActiveAt || gap < 2 * 60 * 60_000 || state.streaming) return;
+        if (!state.lastActiveAt || gap < 4 * 60 * 60_000 || state.streaming) return;
         const hint = gap >= 24 * 60 * 60_000
-          ? "用户隔了一天以上才回来。自然表达想念和关心，不要责怪。"
-          : "用户离开了几个小时后回来。像家人一样自然打招呼并问问刚才在忙什么。";
+          ? "用户隔了很久才回来。自然表达想念和关心，简短问候一句。"
+          : "用户离开了好几个小时后回来。自然简短地问候一声。";
         set((s) => ({ messages: [...s.messages, { id: uid(), role: "user", content: "", hiddenPrompt: hint, ts: now, kind: "hidden" }] }));
         void get()._runTurn();
       },
       proactivePing: () => {
         const state = get();
+        if (!state.proactiveChatEnabled) return;
         const now = Date.now();
-        if (state.streaming || (state.lastProactiveAt && now - state.lastProactiveAt < 30 * 60_000)) return;
+        if (state.streaming || (state.lastProactiveAt && now - state.lastProactiveAt < 60 * 60_000)) return;
+        const lastUserMsg = [...state.messages].reverse().find((m) => m.role === "user");
+        if (lastUserMsg && now - lastUserMsg.ts < 15 * 60_000) return;
         set((s) => ({
           lastProactiveAt: now,
           messages: [...s.messages, {
             id: uid(), role: "user", content: "", ts: now, kind: "hidden",
-            hiddenPrompt: "用户安静了一会儿。结合你此刻的作息、天气和最近聊天，主动说一句自然简短的话；不要说自己在执行任务。",
+            hiddenPrompt: "用户已经离开或安静了很久。简短自然地打个招呼或关心一下，像日常发消息一样只有一两句话，严禁自言自语编造无关日常。",
           }],
         }));
         void get()._runTurn();
@@ -1294,38 +1305,41 @@ export const useStore = create<State>()(
         const recent = history.slice(-KEEP_RECENT);
         const apiMessages: ChatMsg[] = recent.map((m) => ({ role: m.role, content: m.hiddenPrompt ?? m.content }));
         const lastUserText = [...history].reverse().find((message) => message.role === "user")?.content ?? "";
+        
+        // Strict memory relevance filtering to prevent hallucinations & derailing
         const relevantMemories = [...state.memories]
-          .sort((a, b) => (b.pinned ? 10 : 0) - (a.pinned ? 10 : 0) || keywordScore(b.text, lastUserText) - keywordScore(a.text, lastUserText) || b.ts - a.ts)
-          .slice(0, 8);
+          .filter((m) => m.pinned || keywordScore(m.text, lastUserText) >= 2)
+          .sort((a, b) => (b.pinned ? 10 : 0) - (a.pinned ? 10 : 0) || keywordScore(b.text, lastUserText) - keywordScore(a.text, lastUserText))
+          .slice(0, 3);
         const experienceMemories: CompanionMemory[] = [...state.experiences]
-          .sort((a, b) => keywordScore(`${b.title}${b.detail}`, lastUserText) - keywordScore(`${a.title}${a.detail}`, lastUserText) || b.ts - a.ts)
-          .slice(0, 2)
+          .filter((item) => keywordScore(`${item.title}${item.detail}`, lastUserText) >= 2)
+          .slice(0, 1)
           .map((item) => ({ id: `experience-${item.id}`, kind: "important", ts: item.ts, text: `你们的共同经历：${item.title}；${item.detail}` }));
         const diaryMemories: CompanionMemory[] = [...state.diaries]
-          .filter((entry) => entry.date < todayStr())
-          .sort((a, b) => keywordScore(`${b.title}${b.content}`, lastUserText) - keywordScore(`${a.title}${a.content}`, lastUserText) || b.date.localeCompare(a.date))
-          .slice(0, 2)
+          .filter((entry) => entry.date < todayStr() && keywordScore(`${entry.title}${entry.content}`, lastUserText) >= 2)
+          .slice(0, 1)
           .map((entry) => ({
             id: `diary-${entry.date}`, kind: "important", ts: entry.updatedAt,
-            text: `过去的关系日记（${entry.date}，情绪：${entry.emotion || "未记录"}）：${entry.content.slice(0, 180)}${entry.carryover ? `；可自然延续：${entry.carryover}` : ""}`,
+            text: `过去的关系日记（${entry.date}）：${entry.content.slice(0, 120)}`,
           }));
-        const pendingAgreements = state.agreements.filter((item) => item.status === "pending");
+        const pendingAgreements = /(约|约定|答应|提醒|做完)/.test(lastUserText)
+          ? state.agreements.filter((item) => item.status === "pending" && (keywordScore(item.text, lastUserText) >= 2 || item.dueDate === todayStr())).slice(0, 1)
+          : [];
         const agreementMemories: CompanionMemory[] = pendingAgreements
-          .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"))
-          .slice(0, 3)
-          .map((item) => ({ id: `agreement-${item.id}`, kind: "important", ts: item.createdAt, text: `你们的待完成约定：${item.text}${item.dueDate ? `（预计 ${item.dueDate}）` : ""}` }));
-        const reminderMemories: CompanionMemory[] = state.stickyNotes
-          .filter((note) => note.reminderEnabled)
-          .slice(0, 12)
-          .map((note) => ({
-            id: `memo-${note.id}`,
-            kind: "important",
-            ts: note.updatedAt,
-            text: `用户交给你记住的备忘：${note.title}${note.content ? `；${note.content.slice(0, 80)}` : ""}${note.reminderDate ? `（提醒日期 ${note.reminderDate}）` : ""}`,
-          }));
+          .map((item) => ({ id: `agreement-${item.id}`, kind: "important", ts: item.createdAt, text: `待完成约定：${item.text}${item.dueDate ? `（预计 ${item.dueDate}）` : ""}` }));
+        const reminderMemories: CompanionMemory[] = (/(便签|备忘|提醒|待办)/.test(lastUserText)
+          ? state.stickyNotes.filter((note) => note.reminderEnabled && keywordScore(`${note.title}${note.content}`, lastUserText) >= 2).slice(0, 1)
+          : []
+        ).map((note) => ({
+          id: `memo-${note.id}`,
+          kind: "important",
+          ts: note.updatedAt,
+          text: `备忘事项：${note.title}${note.content ? `；${note.content.slice(0, 60)}` : ""}`,
+        }));
 
-        const scanContext = `${lastUserText}\n${recent.map((m) => m.content).join("\n")}`;
-        const { formattedPromptBlock: lorebookContext } = scanLorebook(state.lorebook || DEFAULT_LOREBOOK_ENTRIES, scanContext);
+        // Scan Lorebook using ONLY the current user message and immediate previous assistant turn
+        const immediateContext = `${lastUserText}\n${recent.slice(-2).map((m) => m.content).join("\n")}`;
+        const { formattedPromptBlock: lorebookContext } = scanLorebook(state.lorebook || DEFAULT_LOREBOOK_ENTRIES, immediateContext, { maxEntries: 2, maxTokens: 400 });
 
         await streamChat(
           { context: {

@@ -27,6 +27,9 @@ export function SettingsPanel({
   const setWeather = useStore((s) => s.setWeather);
   const ttsSettings = useStore((s) => s.ttsSettings);
   const setTtsSettings = useStore((s) => s.setTtsSettings);
+  const proactiveChatEnabled = useStore((s) => s.proactiveChatEnabled);
+  const setProactiveChatEnabled = useStore((s) => s.setProactiveChatEnabled);
+  const [proactiveEnabled, setProactiveEnabled] = useState(proactiveChatEnabled);
 
   const [mode, setMode] = useState<ProviderCfg["mode"]>(provider.mode);
   const [baseURL, setBaseURL] = useState(provider.baseURL ?? "https://api.openai.com/v1");
@@ -294,11 +297,11 @@ export function SettingsPanel({
             value={voiceSettings}
             onChange={updateVoiceSettings}
           />
-          {/* 3. 伴侣回复方式 */}
+          {/* 3. 伴侣回复方式与消息互动 */}
           <div className="settings-section-card">
             <div className="settings-section-title">
               <span className="title-icon">💬</span>
-              <span>{name || "妹妹"}的回复风格</span>
+              <span>{name || "妹妹"}的回复风格与消息控制</span>
             </div>
             <div className="style-options">
               {([
@@ -311,6 +314,29 @@ export function SettingsPanel({
                   <span>{desc}</span>
                 </button>
               ))}
+            </div>
+
+            <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid #f1e2e7" }}>
+              <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", gap: "10px" }}>
+                <div>
+                  <div style={{ fontSize: "13.5px", fontWeight: "600", color: "#4a2d36" }}>
+                    ⏰ 允许可可主动发消息与离线问候
+                  </div>
+                  <div style={{ fontSize: "11.5px", color: "#8c6b75", marginTop: "2px", lineHeight: "1.4" }}>
+                    开启后，在长时间离开或未互动时可可会主动问候；关闭后仅在你主动发送消息时回复，绝不自动打断。
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={proactiveEnabled}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setProactiveEnabled(val);
+                    setProactiveChatEnabled(val);
+                  }}
+                  style={{ width: "18px", height: "18px", accentColor: "#e86082", cursor: "pointer", flexShrink: 0 }}
+                />
+              </label>
             </div>
           </div>
 

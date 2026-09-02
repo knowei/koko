@@ -111,35 +111,51 @@ export default function App() {
     void syncWallet();
   }, [syncWallet]);
 
-  useEffect(() => {
-    const reminder = window.setTimeout(() => checkAgreementReminders(), 1800);
-    const daily = window.setInterval(() => checkAgreementReminders(), 30 * 60_000);
-    return () => { window.clearTimeout(reminder); window.clearInterval(daily); };
-  }, [checkAgreementReminders]);
+  const proactiveChatEnabled = useStore((s) => s.proactiveChatEnabled);
 
   useEffect(() => {
-    greetOnReturn();
+    if (!proactiveChatEnabled) return;
+    const reminder = window.setTimeout(() => checkAgreementReminders(), 5000);
+    const daily = window.setInterval(() => checkAgreementReminders(), 60 * 60_000);
+    return () => { window.clearTimeout(reminder); window.clearInterval(daily); };
+  }, [checkAgreementReminders, proactiveChatEnabled]);
+
+  useEffect(() => {
     const clock = window.setInterval(() => setNow(new Date()), 60_000);
-    let idle = window.setTimeout(() => proactivePing(), 90_000);
+    let idle: number | null = null;
+    
+    if (proactiveChatEnabled) {
+      idle = window.setTimeout(() => proactivePing(), 30 * 60_000);
+    }
+
     const resetIdle = () => {
-      window.clearTimeout(idle);
-      idle = window.setTimeout(() => proactivePing(), 90_000);
+      if (idle) window.clearTimeout(idle);
+      if (proactiveChatEnabled) {
+        idle = window.setTimeout(() => proactivePing(), 30 * 60_000);
+      }
     };
+
     const visibility = () => {
-      if (document.hidden) markActive();
-      else { greetOnReturn(); resetIdle(); }
+      if (document.hidden) {
+        markActive();
+      } else {
+        if (proactiveChatEnabled) greetOnReturn();
+        resetIdle();
+      }
     };
+
     window.addEventListener("pointerdown", resetIdle);
     window.addEventListener("keydown", resetIdle);
     document.addEventListener("visibilitychange", visibility);
     return () => {
-      window.clearInterval(clock); window.clearTimeout(idle);
+      window.clearInterval(clock);
+      if (idle) window.clearTimeout(idle);
       window.removeEventListener("pointerdown", resetIdle);
       window.removeEventListener("keydown", resetIdle);
       document.removeEventListener("visibilitychange", visibility);
       markActive();
     };
-  }, [greetOnReturn, markActive, proactivePing]);
+  }, [greetOnReturn, markActive, proactivePing, proactiveChatEnabled]);
 
   useEffect(() => {
     if (weather && Date.now() - weather.updatedAt < 30 * 60_000) return;
