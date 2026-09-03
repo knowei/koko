@@ -18,7 +18,7 @@ export interface ProviderCfg {
   };
 }
 
-import type { MemoryKind } from "@/data/persona";
+import type { MemoryKind, ReplyStyle } from "@/data/persona";
 import type { TopicFlow } from "@/lib/topicFlow";
 import type { VisualNovelScene } from "@/lib/visualNovelScene";
 
@@ -27,7 +27,7 @@ export interface ChatContext {
   mood: number;
   earlierDigest: string;
   personality: { gentle: number; clingy: number; tsundere: number; possessive: number };
-  replyStyle: "daily" | "immersive" | "story" | "visual_novel";
+  replyStyle: ReplyStyle;
   hour: number;
   profile: { name: string; age: number; birthday: string; userNickname: string; city: string };
   weather: { location: string; temperature: number; apparentTemperature: number; weatherCode: number; label: string; isDay: boolean; updatedAt: number } | null;

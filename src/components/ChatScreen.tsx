@@ -184,7 +184,7 @@ export function ChatScreen({
             我是{profile.name}，和你一起长大的妹妹~ 可以直接跟我说话，也可以到「陪伴」里签到、送礼物或一起出门。
           </div>
         )}
-        {messages.map((m) => (
+        {messages.map((m, mIdx) => (
           m.kind === "hidden" ? null : m.kind === "event" ? (
             <div key={m.id} className="event-line">
               · {m.content} ·
@@ -202,6 +202,12 @@ export function ChatScreen({
                       content={m.content}
                       role={m.role}
                       companionName={profile.name}
+                      onSelectOption={(opt) => {
+                        if (!streaming) {
+                          void send(opt);
+                        }
+                      }}
+                      isLatestAssistantMessage={mIdx === messages.length - 1}
                     />
                   ) : streaming ? (
                     <span className="typing">{profile.name}正在思考并打字…</span>

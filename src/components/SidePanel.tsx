@@ -13,12 +13,14 @@ export function SidePanel({
   onOpenSticky,
   onOpenLife,
   onOpenLorebook,
+  onOpenCityMap,
 }: {
   onOpenGames?: () => void;
   onOpenFocus?: () => void;
   onOpenSticky?: () => void;
   onOpenLife?: () => void;
   onOpenLorebook?: () => void;
+  onOpenCityMap?: () => void;
 }) {
   const affinity = useStore((s) => s.affinity);
   const mood = useStore((s) => s.mood);
@@ -227,8 +229,30 @@ export function SidePanel({
       </div>
 
       <div className="side-block">
-        <div className="side-title">和{profileName || "妹妹"}出门</div>
-        <div className="locked-hint">💭 {profileName || "妹妹"}今天想去：{wishedOuting.name} · 选中时好感 ×2</div>
+        <div className="side-title">和{profileName || "妹妹"}外出探索</div>
+
+        {/* 1. SLG City Map Exploration Banner */}
+        {onOpenCityMap && (
+          <div
+            className="city-map-banner-card"
+            onClick={onOpenCityMap}
+            role="button"
+            tabIndex={0}
+            title="进入自由约会大地图，在城镇街头边走边聊，探索学校、电影院等特殊剧情！"
+          >
+            <div className="banner-icon-badge">🗺️</div>
+            <div className="banner-meta">
+              <div className="banner-title-row">
+                <strong>城镇漫步 · 自由约会</strong>
+                <span className="banner-new-tag">SLG 探索 ✨</span>
+              </div>
+              <small>💭 今日心愿：{wishedOuting.name} · 边走边聊</small>
+            </div>
+            <span className="banner-arrow">➔</span>
+          </div>
+        )}
+
+        <div className="locked-hint" style={{ marginTop: 8 }}>⚡ 快捷打卡：选中心愿地点好感 ×2</div>
         <div className="outings">
           {OUTINGS.map((outing) => {
             const locked = affinity < outing.minAffinity;
@@ -246,7 +270,7 @@ export function SidePanel({
             );
           })}
         </div>
-        <div className="locked-hint">{lastOutingDate === todayStr() ? "今天已经出过门啦 ✓" : "每天可以一起出门一次"}</div>
+        <div className="locked-hint">{lastOutingDate === todayStr() ? "今天已经打过卡啦 ✓" : "随时可在漫步大地图中自由探索"}</div>
       </div>
 
       <div className="side-block">

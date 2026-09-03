@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useStore } from "@/store/companionStore";
+import { useStore, type AppTheme } from "@/store/companionStore";
 import type { ProviderCfg } from "@/lib/chat";
 import type { ReplyStyle } from "@/data/persona";
 import type { TTSSettings } from "@/lib/tts";
@@ -17,6 +17,9 @@ export function SettingsPanel({
   onOpenLorebook?: () => void;
 }) {
   const confirmDialog = useConfirmDialog();
+  const theme = useStore((s) => s.theme || "modern");
+  const setTheme = useStore((s) => s.setTheme);
+  const [selectedTheme, setSelectedTheme] = useState<AppTheme>(theme);
   const provider = useStore((s) => s.provider);
   const setProvider = useStore((s) => s.setProvider);
   const replyStyle = useStore((s) => s.replyStyle);
@@ -30,6 +33,10 @@ export function SettingsPanel({
   const proactiveChatEnabled = useStore((s) => s.proactiveChatEnabled);
   const setProactiveChatEnabled = useStore((s) => s.setProactiveChatEnabled);
   const [proactiveEnabled, setProactiveEnabled] = useState(proactiveChatEnabled);
+
+  const enableRandomEvents = useStore((s) => s.enableRandomEvents);
+  const setEnableRandomEvents = useStore((s) => s.setEnableRandomEvents);
+  const [randomEventsEnabled, setRandomEventsEnabled] = useState(enableRandomEvents);
 
   const [mode, setMode] = useState<ProviderCfg["mode"]>(provider.mode);
   const [baseURL, setBaseURL] = useState(provider.baseURL ?? "https://api.openai.com/v1");
@@ -233,7 +240,7 @@ export function SettingsPanel({
     setReplyStyle(style);
     setProfile({
       name: name.trim() || "妹妹",
-      age: Math.max(18, Math.min(99, Number(age) || 18)),
+      age: Math.max(1, Math.min(120, Number(age) || 16)),
       birthday,
       userNickname: userNickname.trim() || "哥哥",
       city: city.trim(),
@@ -249,6 +256,9 @@ export function SettingsPanel({
       customModel: voiceSettings.customModel?.trim(),
       customVoice: voiceSettings.customVoice?.trim(),
     });
+    setTheme(selectedTheme);
+    setProactiveChatEnabled(proactiveEnabled);
+    setEnableRandomEvents(randomEventsEnabled);
     onClose();
   };
 
@@ -265,6 +275,55 @@ export function SettingsPanel({
         </div>
 
         <div className="settings-scroll">
+          {/* 0. 外观主题与配色选择 */}
+          <div className="settings-section-card">
+            <div className="settings-section-title">
+              <span className="title-icon">🎨</span>
+              <span>外观风格与主题配色</span>
+            </div>
+            <div className="theme-options-grid">
+              <button
+                type="button"
+                className={`theme-card-btn ${selectedTheme === "modern" ? "active" : ""}`}
+                onClick={() => {
+                  setSelectedTheme("modern");
+                  setTheme("modern");
+                }}
+              >
+                <div className="theme-card-preview modern-preview">
+                  <span className="preview-dot dot-blue" />
+                  <span className="preview-dot dot-slate" />
+                  <span className="preview-dot dot-white" />
+                </div>
+                <div className="theme-card-info">
+                  <strong>清冷沉浸蓝 (现代银蓝)</strong>
+                  <span>低调舒适 · 高级微光 · 室外防尴尬</span>
+                </div>
+                {selectedTheme === "modern" && <span className="theme-check-badge">✓</span>}
+              </button>
+
+              <button
+                type="button"
+                className={`theme-card-btn ${selectedTheme === "sakura" ? "active" : ""}`}
+                onClick={() => {
+                  setSelectedTheme("sakura");
+                  setTheme("sakura");
+                }}
+              >
+                <div className="theme-card-preview sakura-preview">
+                  <span className="preview-dot dot-pink" />
+                  <span className="preview-dot dot-rose" />
+                  <span className="preview-dot dot-peach" />
+                </div>
+                <div className="theme-card-info">
+                  <strong>经典樱花粉 (浪漫甜心)</strong>
+                  <span>原汁原味二次元萌系 · 甜美少女感</span>
+                </div>
+                {selectedTheme === "sakura" && <span className="theme-check-badge">✓</span>}
+              </button>
+            </div>
+          </div>
+
           {/* 1. 角色档案 */}
           <div className="settings-section-card">
             <div className="settings-section-title">
@@ -277,8 +336,8 @@ export function SettingsPanel({
                 <input maxLength={12} value={name} onChange={(e) => setName(e.target.value)} placeholder="未设置时默认：妹妹" />
               </label>
               <label className="fld">
-                <span>年龄（仅限成年）</span>
-                <input type="number" min={18} max={99} value={age} onChange={(e) => setAge(e.target.value)} />
+                <span>年龄</span>
+                <input type="number" min={1} max={120} value={age} onChange={(e) => setAge(e.target.value)} placeholder="例如：16" />
               </label>
               <label className="fld">
                 <span>生日</span>
@@ -307,8 +366,9 @@ export function SettingsPanel({
               {([
                 ["daily", "日常陪伴", "短对话为主，偶尔带亲昵动作"],
                 ["immersive", "沉浸互动", "台词、细腻动作与心绪描写均衡"],
-                ["story", "剧情小说", "更完整的轻小说式沉浸场景"],
+                ["hiyori", "🎀 妃爱·灵动傲娇", "Galgame妹系，毒舌吐槽与反差兄控心声"],
                 ["visual_novel", "视觉小说", "场景、动作、心声和台词分镜呈现"],
+                ["story", "剧情小说", "更完整的轻小说式沉浸场景"],
               ] as const).map(([value, label, desc]) => (
                 <button key={value} type="button" className={`style-option ${style === value ? "sel" : ""}`} onClick={() => setStyle(value)}>
                   <strong>{label}</strong>
@@ -334,6 +394,29 @@ export function SettingsPanel({
                     const val = e.target.checked;
                     setProactiveEnabled(val);
                     setProactiveChatEnabled(val);
+                  }}
+                  style={{ width: "18px", height: "18px", accentColor: "#e86082", cursor: "pointer", flexShrink: 0 }}
+                />
+              </label>
+            </div>
+
+            <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #f1e2e7" }}>
+              <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", gap: "10px" }}>
+                <div>
+                  <div style={{ fontSize: "13.5px", fontWeight: "600", color: "#4a2d36" }}>
+                    🎲 允许聊天中偶发随机事件（突发情况）
+                  </div>
+                  <div style={{ fontSize: "11.5px", color: "#8c6b75", marginTop: "2px", lineHeight: "1.4" }}>
+                    默认已关闭，确保聊天互动纯粹流畅；若开启，在日常聊天中可能偶发突发小事件（如停电、避雨等）并弹出选择支。
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={randomEventsEnabled}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setRandomEventsEnabled(val);
+                    setEnableRandomEvents(val);
                   }}
                   style={{ width: "18px", height: "18px", accentColor: "#e86082", cursor: "pointer", flexShrink: 0 }}
                 />

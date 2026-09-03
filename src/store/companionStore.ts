@@ -8,6 +8,8 @@ import {
   type CompanionMemory, type CompanionProfile, type MemoryKind, type PersonalityTraits, type RandomEvent, type ReplyStyle, type WeatherInfo,
 } from "@/data/persona";
 import { GALLERY_ITEMS } from "@/data/gallery";
+import { CITY_LOCATIONS } from "@/data/cityMap";
+import { INDOOR_VENUES } from "@/data/indoorVenues";
 import { DEFAULT_LOREBOOK_ENTRIES, type LoreEntry } from "@/data/lorebook";
 import { scanLorebook } from "@/lib/lorebookScanner";
 import { detectTopicFlow } from "@/lib/topicFlow";
@@ -15,6 +17,8 @@ import { analyzePersonalityEvolution } from "@/lib/personalityEngine";
 import { extractVisualNovelScene, type VisualNovelScene } from "@/lib/visualNovelScene";
 
 import { apiUrl } from "@/lib/api";
+
+export type AppTheme = "modern" | "sakura";
 
 export interface StoredMsg {
   id: string;
@@ -211,9 +215,13 @@ interface State {
   expressionExpiry: number;
   personalityToast: string | null;
   proactiveChatEnabled: boolean;
+  enableRandomEvents: boolean;
+  theme: AppTheme;
 
+  setTheme: (theme: AppTheme) => void;
   setPersonalityToast: (toast: string | null) => void;
   setProactiveChatEnabled: (enabled: boolean) => void;
+  setEnableRandomEvents: (enabled: boolean) => void;
   setProvider: (cfg: ProviderCfg) => void;
   setReplyStyle: (style: ReplyStyle) => void;
   setProfile: (profile: CompanionProfile) => void;
@@ -261,6 +269,31 @@ interface State {
   customBgImage: string | null;
   unlockGalleryItem: (id: string) => void;
   setCustomBgImage: (url: string | null) => void;
+
+  currentOutingLocationId: string | null;
+  isOutingMapActive: boolean;
+  outingStepCount: number;
+  enterOutingMap: (initialLocationId?: string) => void;
+  leaveOutingMap: () => void;
+  moveToMapLocation: (locationId: string) => void;
+  resolveLocationBranch: (locationId: string, branchId: string) => Promise<{
+    title: string;
+    dialogue: string;
+    thought: string;
+    action: string;
+    affinityReward: number;
+    moodReward: number;
+    pointsReward: number;
+  } | null>;
+  executeVenueAction: (venueId: string, areaId: string, actionId: string) => Promise<{
+    title: string;
+    dialogue: string;
+    thought: string;
+    action: string;
+    affinityReward: number;
+    moodReward: number;
+    pointsReward: number;
+  } | null>;
 
   lorebook: LoreEntry[];
   addLoreEntry: (entry: Omit<LoreEntry, "id" | "createdAt" | "updatedAt">) => string;
@@ -340,6 +373,15 @@ export const useStore = create<State>()(
       setPersonalityToast: (toast: string | null) => set({ personalityToast: toast }),
       proactiveChatEnabled: false,
       setProactiveChatEnabled: (enabled: boolean) => set({ proactiveChatEnabled: enabled }),
+      enableRandomEvents: false,
+      setEnableRandomEvents: (enabled: boolean) => set({ enableRandomEvents: enabled }),
+      theme: "modern",
+      setTheme: (theme: AppTheme) => {
+        set({ theme });
+        if (typeof document !== "undefined") {
+          document.documentElement.setAttribute("data-theme", theme);
+        }
+      },
       todayGamesCount: 0,
       lastGameDate: null,
       stickyNotes: [
@@ -375,6 +417,230 @@ export const useStore = create<State>()(
       customBgImage: null,
       unlockGalleryItem: (id: string) => set((s) => ({ unlockedGallery: (s.unlockedGallery || []).includes(id) ? s.unlockedGallery : [...(s.unlockedGallery || []), id] })),
       setCustomBgImage: (customBgImage: string | null) => set({ customBgImage }),
+
+      currentOutingLocationId: "school",
+      isOutingMapActive: false,
+      outingStepCount: 0,
+
+      enterOutingMap: (initialLocationId) => {
+        const locId = initialLocationId || get().currentOutingLocationId || "school";
+        set({
+          isOutingMapActive: true,
+          currentOutingLocationId: locId,
+        });
+        const loc = CITY_LOCATIONS.find((l) => l.id === locId);
+        if (loc) {
+          set({
+            visualNovelScene: {
+              summary: loc.ambientScenePrompt,
+              updatedAt: Date.now(),
+            },
+          });
+        }
+      },
+
+      leaveOutingMap: () => {
+        const s = get();
+        const companionName = s.profile.name || "妹妹";
+        const loc = CITY_LOCATIONS.find((l) => l.id === s.currentOutingLocationId);
+        set({
+          isOutingMapActive: false,
+          visualNovelScene: null,
+        });
+        if (s.outingStepCount > 0) {
+          const today = todayStr();
+          set({
+            lastOutingDate: today,
+            experiences: [
+              ...s.experiences,
+              {
+                id: uid(),
+                title: `和${companionName}漫步街头归来`,
+                detail: `今天在城市里漫步了 ${s.outingStepCount} 处地点${loc ? `，最后一站是${loc.name}` : ""}，度过了充实美好的约会时光。`,
+                kind: "outing" as const,
+                ts: Date.now(),
+              },
+            ].slice(-100),
+            messages: [
+              ...s.messages,
+              {
+                id: uid(),
+                role: "user",
+                ts: Date.now(),
+                kind: "event",
+                content: `🌅 和${companionName}牵手回到了家中。今天漫步了 ${s.outingStepCount} 个地点，累积了美好的约会回忆。`,
+                hiddenPrompt: `今天和哥哥在外面的城市街头漫步约会了好久，现在一起牵手回到了温馨的家中。简短感慨一下今天在外面玩的充实与开心，表现出微微的依依不舍与回到家的放松。`,
+              },
+            ],
+            outingStepCount: 0,
+          });
+          void get()._runTurn({ affinity: 3, mood: 5 });
+        }
+      },
+
+      moveToMapLocation: (locationId) => {
+        const loc = CITY_LOCATIONS.find((l) => l.id === locationId);
+        if (!loc) return;
+        set((s) => ({
+          currentOutingLocationId: locationId,
+          outingStepCount: s.outingStepCount + 1,
+          visualNovelScene: {
+            summary: loc.ambientScenePrompt,
+            updatedAt: Date.now(),
+          },
+        }));
+      },
+
+      resolveLocationBranch: async (locationId, branchId) => {
+        const state = get();
+        const loc = CITY_LOCATIONS.find((l) => l.id === locationId);
+        if (!loc) return null;
+        const branch = loc.branches.find((b) => b.id === branchId);
+        if (!branch) return null;
+
+        const companionName = state.profile.name || "妹妹";
+        const userNickname = state.profile.userNickname || "哥哥";
+        const wished = preferredOuting(state.affinity, companionName);
+        const isWished = wished.id === locationId;
+        const affinityReward = isWished ? branch.affinityReward * 2 : branch.affinityReward;
+
+        set((s) => ({
+          affinity: clamp(s.affinity + affinityReward),
+          mood: clamp(s.mood + branch.moodReward),
+          points: s.points + branch.pointsReward,
+          pointLedger: branch.pointsReward > 0
+            ? [...s.pointLedger, {
+                id: uid(),
+                amount: branch.pointsReward,
+                reason: `${loc.name}探索：${branch.label.slice(0, 15)}`,
+                ts: Date.now(),
+              }].slice(-100)
+            : s.pointLedger,
+          experiences: [
+            ...s.experiences,
+            {
+              id: uid(),
+              title: `在${loc.name}：${branch.label}`,
+              detail: `${branch.actionTag}；${branch.reactionDialogue}`,
+              kind: "outing" as const,
+              ts: Date.now(),
+            },
+          ].slice(-100),
+          messages: [
+            ...s.messages,
+            {
+              id: uid(),
+              role: "user",
+              ts: Date.now(),
+              kind: "event",
+              content: `【${loc.name}】${userNickname}选择了「${branch.label}」 · 亲密+${affinityReward} 心情+${branch.moodReward} 心愿星+${branch.pointsReward}`,
+            },
+            {
+              id: uid(),
+              role: "assistant",
+              ts: Date.now(),
+              kind: "chat",
+              content: `（${branch.actionTag}）${branch.reactionDialogue}（${branch.innerThought}）`,
+            },
+          ],
+          visualNovelScene: {
+            summary: `地点：${loc.name}门口｜环境：刚在${loc.name}体验了「${branch.label}」，${companionName}心情很棒，两人继续在街头散步漫游`,
+            updatedAt: Date.now(),
+          },
+        }));
+
+        if (branch.unlockedCgKey) {
+          get().unlockGalleryItem(branch.unlockedCgKey);
+        }
+
+        return {
+          title: loc.name,
+          dialogue: branch.reactionDialogue,
+          thought: branch.innerThought,
+          action: branch.actionTag,
+          affinityReward,
+          moodReward: branch.moodReward,
+          pointsReward: branch.pointsReward,
+        };
+      },
+
+      executeVenueAction: async (venueId, areaId, actionId) => {
+        const state = get();
+        const venue = INDOOR_VENUES[venueId];
+        if (!venue) return null;
+        const area = venue.areas.find((a) => a.id === areaId);
+        if (!area) return null;
+        const action = area.actions.find((ac) => ac.id === actionId);
+        if (!action) return null;
+
+        const companionName = state.profile.name || "妹妹";
+        const userNickname = state.profile.userNickname || "哥哥";
+        const wished = preferredOuting(state.affinity, companionName);
+        const isWished = wished.id === venueId;
+        const affinityReward = isWished ? action.affinityReward * 2 : action.affinityReward;
+
+        set((s) => ({
+          affinity: clamp(s.affinity + affinityReward),
+          mood: clamp(s.mood + action.moodReward),
+          points: s.points + action.pointsReward,
+          pointLedger: action.pointsReward > 0
+            ? [
+                ...s.pointLedger,
+                {
+                  id: uid(),
+                  amount: action.pointsReward,
+                  reason: `${venue.name}·${area.name}：${action.label.slice(0, 15)}`,
+                  ts: Date.now(),
+                },
+              ].slice(-100)
+            : s.pointLedger,
+          experiences: [
+            ...s.experiences,
+            {
+              id: uid(),
+              title: `在${venue.name}（${area.name}）：${action.label}`,
+              detail: `${action.actionTag}；${action.reactionDialogue}`,
+              kind: "outing" as const,
+              ts: Date.now(),
+            },
+          ].slice(-100),
+          messages: [
+            ...s.messages,
+            {
+              id: uid(),
+              role: "user",
+              ts: Date.now(),
+              kind: "event",
+              content: `【${venue.name} · ${area.name}】${userNickname}与可可「${action.label}」 · 亲密+${affinityReward} 心情+${action.moodReward} 心愿星+${action.pointsReward}`,
+            },
+            {
+              id: uid(),
+              role: "assistant",
+              ts: Date.now(),
+              kind: "chat",
+              content: `（${action.actionTag}）${action.reactionDialogue}（${action.innerThought}）`,
+            },
+          ],
+          visualNovelScene: {
+            summary: area.scenePrompt,
+            updatedAt: Date.now(),
+          },
+        }));
+
+        if (action.unlockedCgKey) {
+          get().unlockGalleryItem(action.unlockedCgKey);
+        }
+
+        return {
+          title: `${venue.name} · ${area.name}`,
+          dialogue: action.reactionDialogue,
+          thought: action.innerThought,
+          action: action.actionTag,
+          affinityReward,
+          moodReward: action.moodReward,
+          pointsReward: action.pointsReward,
+        };
+      },
 
       lorebook: DEFAULT_LOREBOOK_ENTRIES,
       addLoreEntry: (entry) => {
@@ -451,7 +717,7 @@ export const useStore = create<State>()(
 
       setProvider: (cfg) => set({ provider: cfg }),
       setReplyStyle: (replyStyle) => set({ replyStyle }),
-      setProfile: (profile) => set({ profile: { ...profile, age: Math.max(18, Math.min(99, profile.age)) } }),
+      setProfile: (profile) => set({ profile: { ...profile, age: Math.max(1, Math.min(99, profile.age)) } }),
       setPreviewSkin: (previewSkin) => set({ previewSkin }),
       setExpression: (expr, durationMs = 8000) => {
         const expiry = Date.now() + durationMs;
@@ -1112,6 +1378,7 @@ export const useStore = create<State>()(
 
       maybeTriggerEvent: async (source) => {
         const state = get();
+        if (!state.enableRandomEvents) return;
         if (state.pendingEvent || !accountToken()) return;
         try {
           const data = await accountRequest("/api/events/trigger", { method: "POST", body: JSON.stringify({ source, affinity: state.affinity }) });
@@ -1359,7 +1626,7 @@ export const useStore = create<State>()(
             affinity: state.affinity, mood: state.mood, earlierDigest: state.rollingSummary || earlierDigest(history),
             personality: state.personality, replyStyle: state.replyStyle, hour: new Date().getHours(),
             profile: state.profile, weather: state.weather, adultMode: state.adultMode, memories: [...relevantMemories, ...experienceMemories, ...diaryMemories, ...agreementMemories, ...reminderMemories],
-            lorebookContext, interactionMode, topicFlow, visualNovelScene: state.replyStyle === "visual_novel" ? state.visualNovelScene : null,
+            lorebookContext, interactionMode, topicFlow, visualNovelScene: (state.replyStyle === "visual_novel" || state.isOutingMapActive) ? state.visualNovelScene : null,
           }, messages: apiMessages, provider: state.provider },
           {
             onDelta: (t) =>
@@ -1512,6 +1779,7 @@ export const useStore = create<State>()(
         lastDiaryAnalyzedCount: s.lastDiaryAnalyzedCount,
         lastDiaryAnalyzedDate: s.lastDiaryAnalyzedDate,
         lorebook: s.lorebook,
+        enableRandomEvents: s.enableRandomEvents,
       }),
     },
   ),

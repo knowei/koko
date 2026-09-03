@@ -31,7 +31,8 @@ export type MessageSegment =
   | { type: "scene"; content: string }
   | { type: "thought"; content: string }
   | { type: "action"; content: string }
-  | { type: "dialogue"; content: string };
+  | { type: "dialogue"; content: string }
+  | { type: "options"; options: string[] };
 
 /**
  * Extract system/expression/personality tags from raw response and return clean text plus metadata
@@ -138,7 +139,22 @@ export function detectExpression(
 export function parseMessageSegments(rawText: string): MessageSegment[] {
   if (!rawText) return [];
 
-  const withoutReasoning = stripReasoningContent(rawText);
+  let withoutReasoning = stripReasoningContent(rawText);
+  let optionsList: string[] | null = null;
+
+  // Extract <options>opt1|opt2|opt3</options>
+  const optionsMatch = withoutReasoning.match(/<options>([\s\S]*?)(?:<\/options>|$)/i);
+  if (optionsMatch) {
+    const rawOptions = optionsMatch[1].trim();
+    if (rawOptions) {
+      optionsList = rawOptions
+        .split(/[|｜\n]/)
+        .map((s) => s.trim().replace(/^[\d+.\-、\s]+/, ""))
+        .filter(Boolean);
+    }
+    withoutReasoning = withoutReasoning.replace(/<options>[\s\S]*?(?:<\/options>|$)/gi, "").trim();
+  }
+
   const segments: MessageSegment[] = [];
 
   const structuredPattern = /<(scene|action|dialogue|thought)>([\s\S]*?)(?:<\/\1>|$)/gi;
@@ -159,6 +175,9 @@ export function parseMessageSegments(rawText: string): MessageSegment[] {
   if (hasStructuredSegments) {
     const trailing = withoutReasoning.slice(structuredLastIndex).trim();
     if (trailing) segments.push({ type: "dialogue", content: trailing });
+    if (optionsList && optionsList.length > 0) {
+      segments.push({ type: "options", options: optionsList });
+    }
     return segments;
   }
 
@@ -179,7 +198,11 @@ export function parseMessageSegments(rawText: string): MessageSegment[] {
       .replace(/^[（(【*]+|[）)】*]+$/g, "")
       .trim();
     if (actionText) {
-      segments.push({ type: "action", content: actionText });
+      if (/^(心声|心想|内心|独白|OS)[：:]/i.test(actionText)) {
+        segments.push({ type: "thought", content: actionText });
+      } else {
+        segments.push({ type: "action", content: actionText });
+      }
     }
 
     lastIndex = pattern.lastIndex;
@@ -190,6 +213,10 @@ export function parseMessageSegments(rawText: string): MessageSegment[] {
     if (trailing) {
       segments.push({ type: "dialogue", content: trailing });
     }
+  }
+
+  if (optionsList && optionsList.length > 0) {
+    segments.push({ type: "options", options: optionsList });
   }
 
   return segments.length > 0 ? segments : [{ type: "dialogue", content: withoutReasoning }];

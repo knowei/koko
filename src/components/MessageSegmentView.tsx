@@ -5,12 +5,16 @@ interface MessageSegmentViewProps {
   content: string;
   role: "user" | "assistant";
   companionName?: string;
+  onSelectOption?: (option: string) => void;
+  isLatestAssistantMessage?: boolean;
 }
 
 export function MessageSegmentView({
   content,
   role,
   companionName = "妹妹",
+  onSelectOption,
+  isLatestAssistantMessage = true,
 }: MessageSegmentViewProps) {
   const [thinkOpen, setThinkOpen] = useState(false);
 
@@ -61,8 +65,8 @@ export function MessageSegmentView({
         if (seg.type === "scene") {
           return (
             <div key={`scene-${idx}`} className="bubble-scene-text">
-              <span aria-hidden="true">▰</span>
-              <span>{seg.content}</span>
+              <span className="scene-indicator">▰ SCENE</span>
+              <span className="scene-content">{seg.content}</span>
             </div>
           );
         }
@@ -70,7 +74,33 @@ export function MessageSegmentView({
         if (seg.type === "thought") {
           return (
             <div key={`thought-${idx}`} className="bubble-inner-thought">
-              {seg.content}
+              <span className="thought-badge">💭 心声</span>
+              <span className="thought-text">{seg.content.replace(/^(心声|心想|内心|独白|OS)[：:]\s*/i, "")}</span>
+            </div>
+          );
+        }
+
+        if (seg.type === "options") {
+          return (
+            <div key={`opts-${idx}`} className="galgame-options-group">
+              <div className="options-header">
+                <span className="options-icon">🎮</span>
+                <span>请选择你的回应分支：</span>
+              </div>
+              <div className="options-list">
+                {seg.options.map((opt, optIdx) => (
+                  <button
+                    key={optIdx}
+                    type="button"
+                    className="galgame-option-btn"
+                    onClick={() => onSelectOption?.(opt)}
+                    disabled={!isLatestAssistantMessage}
+                  >
+                    <span className="option-num">0{optIdx + 1}</span>
+                    <span className="option-text">{opt}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           );
         }

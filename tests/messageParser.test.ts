@@ -37,3 +37,25 @@ test("visual novel TTS reads dialogue only", () => {
     "我在这里呀。",
   );
 });
+
+test("parses inner thoughts in parentheses into thought segment", () => {
+  const segments = parseMessageSegments("（一把掀开被子）大懒虫！快起床！（心声：其实想让你多睡一会儿的）");
+  assert.deepEqual(segments, [
+    { type: "action", content: "一把掀开被子" },
+    { type: "dialogue", content: "大懒虫！快起床！" },
+    { type: "thought", content: "心声：其实想让你多睡一会儿的" },
+  ]);
+});
+
+test("parses options tags into options segment and excludes them from speech", () => {
+  const raw = "今天想吃什么呀？<options>吃热腾腾的拉面|做草莓蛋包饭|点外卖披萨</options>";
+  const segments = parseMessageSegments(raw);
+  assert.deepEqual(segments, [
+    { type: "dialogue", content: "今天想吃什么呀？" },
+    {
+      type: "options",
+      options: ["吃热腾腾的拉面", "做草莓蛋包饭", "点外卖披萨"],
+    },
+  ]);
+  assert.equal(extractCleanSpokenText(raw), "今天想吃什么呀？");
+});

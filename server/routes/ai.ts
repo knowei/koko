@@ -215,8 +215,8 @@ export function createAiRouter() {
   router.post("/api/chat", async (req, res) => {
     const body = req.body as ChatBody;
     const context = body.context || {};
-    const profile = context.profile && Number(context.profile.age) >= 18
-      ? { ...DEFAULT_PROFILE, ...context.profile, name: String(context.profile.name || "可可").slice(0, 12), age: Math.min(99, Math.max(18, Number(context.profile.age))) }
+    const profile = context.profile && Number(context.profile.age) >= 1
+      ? { ...DEFAULT_PROFILE, ...context.profile, name: String(context.profile.name || "可可").slice(0, 12), age: Math.min(99, Math.max(1, Number(context.profile.age))) }
       : DEFAULT_PROFILE;
     const system = buildSystemPrompt(
       Math.min(100, Math.max(0, Number(context.affinity) || 0)),

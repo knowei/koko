@@ -17,6 +17,7 @@ import { FocusCompanionModal } from "@/components/FocusCompanionModal";
 import { StickyNotesModal } from "@/components/StickyNotesModal";
 import { LifeCompanionModal } from "@/components/LifeCompanionModal";
 import { LorebookModal } from "@/components/LorebookModal";
+import { CityMapModal } from "@/components/CityMapModal";
 import { useConfirmDialog } from "@/components/ConfirmDialog";
 
 declare global {
@@ -51,6 +52,12 @@ export default function App() {
   const setWeather = useStore((s) => s.setWeather);
   const syncWallet = useStore((s) => s.syncWallet);
   const customBgImage = useStore((s) => s.customBgImage);
+  const theme = useStore((s) => s.theme || "modern");
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
   const [showSettings, setShowSettings] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showPetWidget, setShowPetWidget] = useState(false);
@@ -58,6 +65,7 @@ export default function App() {
   const [showStickyModal, setShowStickyModal] = useState(false);
   const [showLifeModal, setShowLifeModal] = useState(false);
   const [showLorebookModal, setShowLorebookModal] = useState(false);
+  const [showCityMap, setShowCityMap] = useState(false);
   const [isMiniCompanion, setIsMiniCompanion] = useState(() => {
     return typeof window !== "undefined" && window.location.search.includes("mode=pet");
   });
@@ -265,6 +273,13 @@ export default function App() {
             {/* 2. Life & Focus Companion Quick Tools */}
             <div className="tools-pill-group">
               <button
+                className="tool-pill-btn city-tool-btn"
+                title="开启城市漫步大地图，在街头自由散步、随行边走边聊，探索学校、电影院等剧情！"
+                onClick={() => setShowCityMap(true)}
+              >
+                🗺️ 漫步
+              </button>
+              <button
                 className="tool-pill-btn pet-tool-btn"
                 title="切换为桌面悬浮陪伴小窗"
                 onClick={() => {
@@ -392,6 +407,7 @@ export default function App() {
                   onOpenLife={() => setShowLifeModal(true)}
                   onOpenSticky={() => setShowStickyModal(true)}
                   onOpenLorebook={() => setShowLorebookModal(true)}
+                  onOpenCityMap={() => setShowCityMap(true)}
                 />
               </div>
             </>
@@ -401,6 +417,7 @@ export default function App() {
         <nav className="mobile-nav" aria-label="手机端导航">
           <button className={activeView === "chat" ? "active" : ""} onClick={() => setActiveView("chat")}>💬<span>聊天</span></button>
           <button className={activeView === "life" ? "active" : ""} onClick={() => setActiveView("life")}>🎡<span>互动</span></button>
+          <button className="mobile-map-btn" onClick={() => setShowCityMap(true)}>🗺️<span>漫步</span></button>
           <button className={activeView === "shop" ? "active" : ""} onClick={() => setActiveView("shop")}>🛍️<span>商城</span></button>
           <button className={activeView === "memories" ? "active" : ""} onClick={() => setActiveView("memories")}>📖<span>回忆</span></button>
           <button onClick={() => {
@@ -424,6 +441,7 @@ export default function App() {
       <StickyNotesModal isOpen={showStickyModal} onClose={() => setShowStickyModal(false)} />
       <LifeCompanionModal isOpen={showLifeModal} onClose={() => setShowLifeModal(false)} />
       <LorebookModal open={showLorebookModal} onClose={() => setShowLorebookModal(false)} />
+      {showCityMap && <CityMapModal onClose={() => setShowCityMap(false)} />}
       <RandomEventModal />
     </div>
   );
